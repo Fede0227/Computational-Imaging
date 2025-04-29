@@ -5,21 +5,39 @@
 ### Setup (first time only)
 
 ```
-python3 -m venv venv
-source venv/bin/activate
+conda create -n imenv python=3.11 -c conda-forge
+```
+
+On macos:
+```
+conda init zsh
+conda activate imenv
+```
+
+### Required packages
+```
+conda activate imenv
 pip install -r requirements.txt
+conda install -c conda-forge xesmf
 ```
 
 ### Running the project
 
 ```
-source venv/bin/activate
+conda activate imenv
 ```
+
+## Steps
+
+1. Download the datasets in the folder `datasets`
+2. Run the reprojection script `reproject.py`
+3. Run the nn training
 
 ## Datasets
 
 The Local datasets are smaller (only november 2023) and are thought to be worked on locally.
 The full datasets will run on the training machine.
+ERA5 is the dataset of the world. VHR-REA is the dataset at high resolution over italy.
 
 - [ERA5](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download)
 - [VHR-REA](https://dds.cmcc.it/#/dataset/era5-downscaled-over-italy)

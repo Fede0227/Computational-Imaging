@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # --- Configuration ---
-file_path = 'datasets/era5-downscaled-over-italy_hourly_80383.nc'
+file_path = 'datasets/vhr-rea.nc'
 
 # --- Choose wind components ---
 u_wind_component = 'U_10M'
