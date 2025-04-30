@@ -1,90 +1,88 @@
 import xarray as xr
-import matplotlib.pyplot as plt
-import numpy as np
-import traceback # Keep for debugging if needed
+import pandas as pd
+import traceback
+import time as timer
 
+# --- Configuration ---
 file_path = 'datasets/vhr-rea.nc'
 u_wind_component = "U_10M"
 v_wind_component = "V_10M"
-speed_colormap = "viridis"
+output_csv_path = 'wind_data.csv'
+
+# --- Main Script ---
+start_time = timer.time()
+print(f"Starting script...")
 
 try:
-    # Open the dataset using a 'with' statement (good practice)
+    print(f"Opening dataset: {file_path}")
     with xr.open_dataset(file_path, mask_and_scale=True) as ds:
-        print("--- Dataset Information ---")
+        print("--- Full Dataset Information ---")
         print(ds)
 
-        time_index_to_plot = 0
-        # --- Data Selection ---
-        u_data = ds[u_wind_component].isel(time=time_index_to_plot)
-        v_data = ds[v_wind_component].isel(time=time_index_to_plot)
+        # Select only the necessary variables and coordinates for efficiency
+        # Note: 'lat' and 'lon' are coordinates associated with rlat/rlon dimensions
+        # and will be included automatically by to_dataframe()
+        # We explicitly select the data variables we need.
+        print("Selecting necessary data variables...")
+        ds_subset = ds[[u_wind_component, v_wind_component]]
 
-        print("--- u data ---")
-        print(u_data)
-        print("--- v data ---")
-        print(v_data)
+        # Convert the xarray Dataset to a pandas DataFrame
+        # It will create a DataFrame with a MultiIndex (time, rlat, rlon)
+        # and columns for U_10M, V_10M, lat, lon.
+        print("Converting xarray Dataset to pandas DataFrame...")
+        df = ds_subset.to_dataframe()
+        print("Conversion complete.")
 
+        # Reset the index to turn 'time', 'rlat', 'rlon' into columns
+        print("Resetting DataFrame index...")
+        df = df.reset_index()
 
-        # # --- Calculate Wind Speed ---
-        # # xarray handles element-wise operations and keeps metadata
-        # wind_speed = np.sqrt(u_data**2 + v_data**2)
+        # Select and rename the desired columns
+        output_df = df[['time', 'lon', 'lat', u_wind_component, v_wind_component]].copy() # Use .copy() to avoid SettingWithCopyWarning
+        output_df.rename(columns={
+            'lon': 'long', # Rename 'lon' to 'long' as requested
+            u_wind_component: 'u',
+            v_wind_component: 'v'
+        }, inplace=True)
 
-        # # Add descriptive name and units (if available) for the plot
-        # wind_speed.attrs['long_name'] = 'Wind Speed at 10m' # Be more specific
-        # if 'units' in u_data.attrs:
-        #      wind_speed.attrs['units'] = u_data.attrs['units']
-        # else:
-        #      wind_speed.attrs['units'] = 'm/s' # Make a reasonable assumption if missing
+        # Handle potential NaN values if necessary
+        # For instance, drop rows where any of the essential columns are NaN
+        initial_rows = len(output_df)
+        output_df.dropna(subset=['time', 'long', 'lat', 'u', 'v'], inplace=True)
+        if initial_rows > len(output_df):
+            print(f"Dropped {initial_rows - len(output_df)} rows with NaN values.")
 
-        # # --- Get Time for Title ---
-        # time_val = wind_speed['time'] 
-        # # Format it nicely using pandas datetime properties accessed via .dt
-        # time_str = time_val.dt.strftime('%Y-%m-%d %H:%M:%S').item() # .item() extracts scalar value
+        # SAVE DATAFRAME TO FILE
+        # # Write the DataFrame to a CSV file
+        # print(f"Writing data to CSV: {output_csv_path}...")
+        # # index=False prevents pandas from writing the DataFrame index as a column
+        # output_df.to_csv(output_csv_path, index=False, date_format='%Y-%m-%d %H:%M:%S')
+        # print(f"Successfully wrote CSV file with {len(output_df)} rows.")
+        print(output_df)
 
-        # # --- Plotting (Simplified using xarray's .plot) ---
-        # print(f"\nGenerating plot for wind speed at {time_str}...")
-
-        # # Create the figure and axes explicitly for better control (optional but good practice)
-        # fig, ax = plt.subplots(figsize=(10, 8))
-
-        # # Use xarray's built-in plotting. It usually infers coordinates correctly.
-        # # Tell it explicitly to use 'lon' and 'lat' which are 2D coordinates in your file
-        # # It's good practice to specify coordinates if they are not the dimensions
-        # wind_speed.plot.pcolormesh(
-        #     ax=ax,               # Specify the axes to plot on
-        #     x='lon',             # Use the 'lon' coordinate for the x-axis
-        #     y='lat',             # Use the 'lat' coordinate for the y-axis
-        #     cmap=speed_colormap, # Set the colormap
-        #     cbar_kwargs={'label': f"{wind_speed.attrs['long_name']} ({wind_speed.attrs['units']})"} # Label for colorbar
-        # )
-
-        # ax.set_title(f"Wind Speed at {time_str}")
-
-        # plt.tight_layout() # Adjust layout to prevent labels overlapping
-        # plt.show()         # Display the plot
 
 except FileNotFoundError:
     print(f"Error: File not found at '{file_path}'. Please ensure the path is correct.")
 except KeyError as e:
-    print(f"Error: Missing variable or coordinate in the dataset: {e}")
-    # Ensure ds is defined before trying to access its keys if the error happens early
+    print(f"Error: Missing variable, coordinate, or column in the dataset/dataframe: {e}")
     try:
         with xr.open_dataset(file_path) as temp_ds:
-            print(f"Available variables: {list(temp_ds.data_vars.keys())}")
+            print(f"Available data variables: {list(temp_ds.data_vars.keys())}")
             print(f"Available coordinates: {list(temp_ds.coords.keys())}")
     except Exception as inner_e:
-        print(f"Could not read dataset to list available variables/coords: {inner_e}")
-except IndexError as e:
-    # This error would happen if time_index_to_plot is invalid
-    print(f"Error: time_index_to_plot ({time_index_to_plot}) is out of bounds for the 'time' dimension.")
-    try:
-        with xr.open_dataset(file_path) as temp_ds:
-            time_dim_size = temp_ds.dims.get('time', 'Not Found')
-            print(f"Size of 'time' dimension: {time_dim_size}")
-    except Exception as inner_e:
-        print(f"Could not read dataset to check time dimension size: {inner_e}")
+        print(f"Could not read dataset to list available keys: {inner_e}")
+    if 'df' in locals():
+         print(f"Available DataFrame columns: {df.columns.tolist()}")
+
+except MemoryError:
+     print(f"Error: Insufficient memory to convert the dataset to a DataFrame.")
+     print("Consider processing the data in chunks (e.g., time step by time step) if the dataset is too large.")
+     traceback.print_exc()
+
 except Exception as e:
     print(f"An unexpected error occurred: {e}")
     traceback.print_exc()
 
-
+finally:
+    end_time = timer.time()
+    print(f"Script finished in {end_time - start_time:.2f} seconds.")
