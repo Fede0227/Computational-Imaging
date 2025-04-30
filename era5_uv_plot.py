@@ -4,7 +4,7 @@ import numpy as np
 import traceback # Import traceback for detailed error logging
 
 # --- Configuration ---
-file_path = 'datasets/regridded_era5.nc'
+file_path = 'datasets/era5.nc'
 
 # --- Choose wind components ---
 u_wind_component = 'u10'
