@@ -75,12 +75,12 @@ try:
         # Assume U and V components share the same coordinate grid
         if not ('lon' in data_slice_u.coords and 'lat' in data_slice_u.coords):
              raise ValueError("Could not find 'lon'/'lat' coordinates for U component.")
-        lons = data_slice_u['lon'] # Use coordinates from one variable
-        lats = data_slice_u['lat']
+        lons = data_slice_u['rlon'] # Use coordinates from one variable
+        lats = data_slice_u['rlat']
 
         # --- Create the Plot ---
         print(f"\nGenerating plot for wind at {time_str}...")
-        fig, ax = plt.subplots(figsize=(12, 10)) # Adjust figure size
+        fig, ax = plt.subplots(figsize=(10, 8)) # Adjust figure size
 
         # 1. Plot Wind Speed using pcolormesh
         #    Use the calculated wind_speed DataArray
