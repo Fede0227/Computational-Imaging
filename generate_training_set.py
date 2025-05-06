@@ -2,7 +2,7 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_dataset_image(file_path, time_index_to_plot=0):
+def plot_dataset_image_from_path(file_path, time_index_to_plot=0):
 
     speed_colormap = "viridis"
 
@@ -99,6 +99,71 @@ def plot_dataset_image(file_path, time_index_to_plot=0):
         import traceback
         traceback.print_exc()
 
+def plot_dataset_image_from_item(dataset_item):
+    # training set data
+    u_wind_component = "u10"
+    v_wind_component = "v10"
+
+    # FOR PLOTTING ONLY
+    lons = dataset_item['rlon']
+    lats = dataset_item['rlat']
+
+    wind_speed = np.sqrt(dataset_item[u_wind_component]**2 + dataset_item[v_wind_component]**2)
+
+    print(f"######### {len(wind_speed)} ########")
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    mesh = ax.pcolormesh(lons.values, lats.values, wind_speed.values, cmap="viridis", shading='auto')
+
+    cbar = fig.colorbar(mesh, ax=ax, orientation='vertical', pad=0.02, shrink=0.8)
+    cbar_label = f"{wind_speed.attrs.get('long_name', 'Wind Speed')}"
+    if 'units' in wind_speed.attrs:
+        cbar_label += f" ({wind_speed.attrs['units']})"
+    cbar.set_label(cbar_label)
+
+    ax.set_title("base_title")
+    ax.set_xlabel(f"{lons.attrs.get('long_name', 'Longitude')} ({lons.attrs.get('units', 'degrees_east')})")
+    ax.set_ylabel(f"{lats.attrs.get('long_name', 'Latitude')} ({lats.attrs.get('units', 'degrees_north')})")
+
+    plt.tight_layout()
+    plt.show()
+    
+    return
+
 if __name__ == "__main__":
-    plot_dataset_image("datasets/vhr-rea.nc")
-    plot_dataset_image("datasets/regridded_era5.nc")
+    era5_path = "datasets/regridded_era5.nc"
+    vhr_path = "datasets/vhr-rea.nc"
+
+    era5_data = xr.open_dataset(era5_path, mask_and_scale=True)
+    print(era5_data)
+
+    vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
+    print(vhr_data)
+
+    print("----------------------------")
+    training_set = []
+    for i in range(0,2):
+        X_slice = era5_data.isel(valid_time=i)
+        y_slice = vhr_data.isel(time=i)
+        print(f"---- dataset index {i} ----")
+        print(X_slice)
+        print(f"X_slice LENGTH --> {len(X_slice)}")
+        print("-----")
+        print(y_slice)
+        training_set.append((X_slice, y_slice))
+    print("----------------------------")
+
+    X = 0
+    y = 1
+    dataset_item = 0
+    print(f"dataset item {dataset_item} X")
+    print(training_set[dataset_item][X])
+
+    plot_dataset_image_from_item(training_set[dataset_item][X])
+
+    import sys
+    sys.exit(111)
+
+    plot_dataset_image_from_path(vhr_path)
+    plot_dataset_image_from_path(era5_path)
