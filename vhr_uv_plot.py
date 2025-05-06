@@ -73,8 +73,8 @@ try:
 
         # --- Get Coordinates ---
         # Assume U and V components share the same coordinate grid
-        if not ('lon' in data_slice_u.coords and 'lat' in data_slice_u.coords):
-             raise ValueError("Could not find 'lon'/'lat' coordinates for U component.")
+        if not ('rlon' in data_slice_u.coords and 'rlat' in data_slice_u.coords):
+             raise ValueError("Could not find 'rlon'/'rlat' coordinates for U component.")
         lons = data_slice_u['rlon'] # Use coordinates from one variable
         lats = data_slice_u['rlat']
 

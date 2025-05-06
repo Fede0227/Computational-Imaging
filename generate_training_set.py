@@ -203,40 +203,62 @@ if __name__ == "__main__":
     print("--- ERA5 Data Loaded ---")
     print(era5_data)
 
-    vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
-    print("\n--- VHR Data Loaded ---")
-    print(vhr_data)
+    # vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
+    # print("\n--- VHR Data Loaded ---")
+    # print(vhr_data)
+
+    plot_dataset_image_from_path(era5_path)
 
     print("\n----------------------------")
-    print("Creating training_set...")
-    training_set = []
-    # Loop for first two time steps (indices 0 and 1)
-    for i in range(min(len(era5_data.valid_time), len(vhr_data.time), 2)):
-        print(f"Processing time index {i}")
-        X_slice = era5_data.isel(valid_time=i)
-        y_slice = vhr_data.isel(time=i)
-        print(f"  X_slice (from ERA5) valid_time: {X_slice.valid_time.values}")
-        print(f"  y_slice (from VHR)  time: {y_slice.time.values}")
-        training_set.append((X_slice, y_slice))
-    print("----------------------------")
 
-    # Define X and y for tuple indexing
-    X_INDEX = 0
-    Y_INDEX = 1
-    
-    dataset_pair_index = 0 # Which pair from training_set to plot (e.g., 0 for the first time step)
+    print(era5_data)
+    print("\n----------------------------")
 
-    if training_set:
-        print(f"\nPlotting X component (ERA5-like) for training pair index {dataset_pair_index}:")
-        plot_slice_wind_data(training_set[dataset_pair_index][X_INDEX])
+    ds_subset = era5_data[["u10", "v10"]]
 
-        print(f"\nPlotting Y component (VHR-like) for training pair index {dataset_pair_index}:")
-        plot_slice_wind_data(training_set[dataset_pair_index][Y_INDEX])
-    else:
-        print("Training set is empty, skipping plotting.")
+    print(ds_subset)
+    print("\n----------------------------")
 
-    # # Your original calls to plot_dataset_image_from_path can also be used for comparison
-    # print("\nPlotting VHR data directly from path (first time step):")
-    # plot_dataset_image_from_path(vhr_path, time_index_to_plot=0)
-    # print("\nPlotting ERA5 data directly from path (first time step):")
-    # plot_dataset_image_from_path(era5_path, time_index_to_plot=0)
+    df = ds_subset.to_dataframe()
+    print(df)
+    print("\n----------------------------")
+
+    df = df.reset_index()
+    print(df)
+    print("\n----------------------------")
+
+    import sys
+    sys.exit(111)
+
+    # print("Creating training_set...")
+    # training_set = []
+    # # Loop for first two time steps (indices 0 and 1)
+    # for i in range(min(len(era5_data.valid_time), len(vhr_data.time), 2)):
+    #     print(f"Processing time index {i}")
+    #     X_slice = era5_data.isel(valid_time=i)
+    #     y_slice = vhr_data.isel(time=i)
+    #     print(f"  X_slice (from ERA5) valid_time: {X_slice.valid_time.values}")
+    #     print(f"  y_slice (from VHR)  time: {y_slice.time.values}")
+    #     training_set.append((X_slice, y_slice))
+    # print("----------------------------")
+
+    # # Define X and y for tuple indexing
+    # X_INDEX = 0
+    # Y_INDEX = 1
+
+    # dataset_pair_index = 0 # Which pair from training_set to plot (e.g., 0 for the first time step)
+
+    # if training_set:
+    #     print(f"\nPlotting X component (ERA5-like) for training pair index {dataset_pair_index}:")
+    #     plot_slice_wind_data(training_set[dataset_pair_index][X_INDEX])
+
+    #     print(f"\nPlotting Y component (VHR-like) for training pair index {dataset_pair_index}:")
+    #     plot_slice_wind_data(training_set[dataset_pair_index][Y_INDEX])
+    # else:
+    #     print("Training set is empty, skipping plotting.")
+
+    # # # Your original calls to plot_dataset_image_from_path can also be used for comparison
+    # # print("\nPlotting VHR data directly from path (first time step):")
+    # # plot_dataset_image_from_path(vhr_path, time_index_to_plot=0)
+    # # print("\nPlotting ERA5 data directly from path (first time step):")
+    # # plot_dataset_image_from_path(era5_path, time_index_to_plot=0)
