@@ -22,6 +22,7 @@ try:
 
         print("--- Dataset Information ---")
         print(ds)
+        print("---------------------------")
 
         # --- Data Selection ---
         if u_wind_component not in ds.data_vars:
@@ -69,7 +70,6 @@ try:
         wind_speed.attrs['long_name'] = 'Wind Speed'
         if 'units' in data_slice_u.attrs: # Assume U and V have same units
              wind_speed.attrs['units'] = data_slice_u.attrs['units']
-
 
         # --- Get Coordinates ---
         # Assume U and V components share the same coordinate grid
