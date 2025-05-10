@@ -1,264 +1,159 @@
 import xarray as xr
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-def plot_dataset_image_from_path(file_path, time_index_to_plot=0):
+def plot_dataset_sample(era5_sample, vhr_sample):
 
-    speed_colormap = "viridis"
+    # Magnitude M = sqrt(u^2 + v^2)
+    # PyTorch's torch.sqrt and element-wise operations make this easy.
+    era5_magnitude = torch.sqrt(era5_sample[0, :, :]**2 + era5_sample[1, :, :]**2)
+    vhr_magnitude = torch.sqrt(vhr_sample[0, :, :]**2 + vhr_sample[1, :, :]**2)
 
-    if file_path == "datasets/regridded_era5.nc":
-        u_wind_component = "u10"
-        v_wind_component = "v10"
-        time_label = "valid_time"
-        lon_label, lat_label = "rlon", "rlat"
-    elif file_path == "datasets/vhr-rea.nc":
-        u_wind_component = "U_10M"
-        v_wind_component = "V_10M"
-        time_label = "time"
-        lon_label, lat_label = "rlon", "rlat"
-    else:
-        raise ValueError(f"Unknown file path '{file_path}'")
+    # Matplotlib typically works best with NumPy arrays.
+    era5_magnitude_numpy = era5_magnitude.cpu().numpy()
+    vhr_magnitude_numpy = vhr_magnitude.cpu().numpy()
 
-    try:
-        with xr.open_dataset(file_path, mask_and_scale=True) as ds:
+    plt.figure(figsize=(10, 8))
 
-            print("--- Dataset Information ---")
-            print(ds)
-            print("---------------------------")
+    plt.subplot(1, 2, 1)
+    plt.imshow(era5_magnitude_numpy, cmap='viridis', origin='lower')
+    plt.title('Vector Field Intensity Map')
+    plt.xlabel('Pixel X-coordinate (width)')
+    plt.ylabel('Pixel Y-coordinate (height)')
 
-            # --- Data Selection ---
-            if u_wind_component not in ds.data_vars:
-                raise KeyError(f"Variable '{u_wind_component}' not found. Available: {list(ds.data_vars.keys())}")
-            if v_wind_component not in ds.data_vars:
-                raise KeyError(f"Variable '{v_wind_component}' not found. Available: {list(ds.data_vars.keys())}")
+    plt.subplot(1, 2, 2)
+    plt.imshow(vhr_magnitude_numpy, cmap='viridis', origin='lower')
+    plt.title('Vector Field Intensity Map')
+    plt.xlabel('Pixel X-coordinate (width)')
+    plt.ylabel('Pixel Y-coordinate (height)')
 
-            var_data_u = ds[u_wind_component]
-            var_data_v = ds[v_wind_component]
-
-            # --- Time Slicing ---
-            if time_label in ds.dims: # Check dimension existence in Dataset
-                if time_index_to_plot >= len(ds[time_label]): # ds[time_label] gives the coordinate array
-                    raise IndexError(f"time_index_to_plot={time_index_to_plot} out of bounds. Time size: {len(ds[time_label])}.")
-
-                # Use a dictionary for isel to handle different time dimension names
-                data_slice_u = var_data_u.isel({time_label: time_index_to_plot})
-                data_slice_v = var_data_v.isel({time_label: time_index_to_plot})
-                
-                # Get time for title from the sliced data variable (which now has a scalar time coord)
-                # or directly from the dataset's time coordinate array
-                time_val_coord = ds[time_label].isel({time_label: time_index_to_plot})
-
-                try:
-                    # .item() is crucial for 0-dim array to get scalar
-                    time_str = np.datetime_as_string(time_val_coord.values.item(), unit='s')
-                    base_title = f"Wind Speed & Direction at {time_str}"
-                except Exception:
-                    time_str = f"index {time_index_to_plot}" # Fallback
-                    base_title = f"Wind Speed & Direction at time index {time_index_to_plot}"
-            else:
-                # If there's no time dimension, assume data is already 2D
-                data_slice_u = var_data_u
-                data_slice_v = var_data_v
-                base_title = "Wind Speed & Direction (Static Data)"
-                time_str = "N/A"
-                if data_slice_u.ndim > 2 or data_slice_v.ndim > 2:
-                     raise ValueError(f"Data for '{u_wind_component}' or '{v_wind_component}' is not 2D and no time dimension '{time_label}' found for slicing.")
-
-
-            # --- Calculate Wind Speed ---
-            wind_speed = np.sqrt(data_slice_u**2 + data_slice_v**2)
-            wind_speed.attrs['long_name'] = 'Wind Speed'
-            if 'units' in data_slice_u.attrs:
-                wind_speed.attrs['units'] = data_slice_u.attrs['units']
-
-            if not (lon_label in data_slice_u.coords and lat_label in data_slice_u.coords):
-                 # Check dataset level coords if not found in variable's coords
-                if not (lon_label in ds.coords and lat_label in ds.coords):
-                    raise ValueError(f"Could not find '{lon_label}'/'{lat_label}' coordinates.")
-                lons = ds[lon_label]
-                lats = ds[lat_label]
-            else:
-                lons = data_slice_u[lon_label]
-                lats = data_slice_u[lat_label]
-
-
-            # --- Create the Plot ---
-            print(f"\nGenerating plot from path for wind at {time_str}...")
-            fig, ax = plt.subplots(figsize=(10, 8))
-
-            mesh = ax.pcolormesh(lons.values, lats.values, wind_speed.values, cmap=speed_colormap, shading='auto')
-
-            cbar = fig.colorbar(mesh, ax=ax, orientation='vertical', pad=0.02, shrink=0.8)
-            cbar_label = f"{wind_speed.attrs.get('long_name', 'Wind Speed')}"
-            if 'units' in wind_speed.attrs:
-                cbar_label += f" ({wind_speed.attrs['units']})"
-            cbar.set_label(cbar_label)
-
-            ax.set_title(base_title)
-            ax.set_xlabel(f"{lons.attrs.get('long_name', 'Longitude')} ({lons.attrs.get('units', 'degrees_east')})")
-            ax.set_ylabel(f"{lats.attrs.get('long_name', 'Latitude')} ({lats.attrs.get('units', 'degrees_north')})")
-
-            plt.tight_layout()
-            plt.show()
-
-    except FileNotFoundError:
-        print(f"Error: File not found at '{file_path}'. Please ensure the path is correct.")
-    except KeyError as e:
-        print(f"Error: Data Variable or Coordinate Key not found - {e}")
-    except IndexError as e:
-        print(f"Error: Time Index out of bounds - {e}")
-    except ValueError as e:
-        print(f"Error: Value mismatch or configuration error - {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        import traceback
-        traceback.print_exc()
-
-
-def plot_slice_wind_data(dataset_slice):
-    """
-    Plots wind speed and direction from an xarray.Dataset slice.
-    The slice is assumed to be 2D for wind components after time selection.
-    It attempts to infer variable and coordinate names.
-    """
-    u_comp_name, v_comp_name = None, None
-    time_coord_name, lon_coord_name, lat_coord_name = None, None, None
-    source_name = "Data Slice"
-
-    # Infer variable names
-    if 'u10' in dataset_slice.data_vars and 'v10' in dataset_slice.data_vars:
-        u_comp_name, v_comp_name = 'u10', 'v10'
-        source_name = "ERA5-like Slice"
-        time_coord_name = 'valid_time' # Expected time coord for ERA5 slices
-    elif 'U_10M' in dataset_slice.data_vars and 'V_10M' in dataset_slice.data_vars:
-        u_comp_name, v_comp_name = 'U_10M', 'V_10M'
-        source_name = "VHR-like Slice"
-        time_coord_name = 'time' # Expected time coord for VHR slices
-    else:
-        raise ValueError(f"Cannot determine wind components in the dataset slice. Vars: {list(dataset_slice.data_vars.keys())}")
-
-    # Infer spatial coordinates (assuming they are coordinates of the dataset_slice)
-    if 'rlon' in dataset_slice.coords and 'rlat' in dataset_slice.coords:
-        lon_coord_name, lat_coord_name = 'rlon', 'rlat'
-    elif 'lon' in dataset_slice.coords and 'lat' in dataset_slice.coords: # common alternatives
-        lon_coord_name, lat_coord_name = 'lon', 'lat'
-    elif 'longitude' in dataset_slice.coords and 'latitude' in dataset_slice.coords:
-        lon_coord_name, lat_coord_name = 'longitude', 'latitude'
-    else:
-        raise ValueError(f"Cannot determine lon/lat coordinates in the dataset slice. Coords: {list(dataset_slice.coords.keys())}")
-
-    u_data = dataset_slice[u_comp_name]
-    v_data = dataset_slice[v_comp_name]
-
-    # Get time for title (dataset_slice should have a scalar time coordinate)
-    title_time_str = "Unknown Time"
-    if time_coord_name in dataset_slice.coords:
-        time_val_da = dataset_slice[time_coord_name]
-        if time_val_da.size == 1: # Ensure it's a scalar coordinate
-            try:
-                # .item() gets the scalar from a 0-dim array
-                title_time_str = np.datetime_as_string(time_val_da.item(), unit='s')
-            except Exception as e:
-                print(f"Warning: Could not format time for title: {e}. Using raw value: {time_val_da.values}")
-                title_time_str = str(time_val_da.values)
-        else:
-            print(f"Warning: Time coordinate '{time_coord_name}' is not scalar. Title might be incorrect.")
-            title_time_str = f"{time_coord_name} (array)"
-    else:
-        print(f"Warning: Time coordinate '{time_coord_name}' not found for title.")
-
-    base_title = f"Wind Speed ({source_name}) at {title_time_str}"
-
-    wind_speed = np.sqrt(u_data**2 + v_data**2)
-    wind_speed.attrs['long_name'] = 'Wind Speed'
-    if 'units' in u_data.attrs:
-        wind_speed.attrs['units'] = u_data.attrs['units']
-
-    lons = dataset_slice[lon_coord_name]
-    lats = dataset_slice[lat_coord_name]
-
-    print(f"\nPlotting {source_name} - Wind Speed at {title_time_str}")
-    print(f"Data shape: {wind_speed.shape}") # This will show (5,5) for X, (21,21) for Y
-
-    fig, ax = plt.subplots(figsize=(10, 8))
-    mesh = ax.pcolormesh(lons.values, lats.values, wind_speed.values, cmap="viridis", shading='auto')
-    cbar = fig.colorbar(mesh, ax=ax, shrink=0.8, pad=0.02)
-    cbar_label = wind_speed.attrs.get('long_name', 'Wind Speed')
-    if 'units' in wind_speed.attrs:
-        cbar_label += f" ({wind_speed.attrs['units']})"
-    cbar.set_label(cbar_label)
-
-    ax.set_title(base_title)
-    ax.set_xlabel(f"{lons.attrs.get('long_name', 'Longitude')} ({lons.attrs.get('units', 'degrees_east')})")
-    ax.set_ylabel(f"{lats.attrs.get('long_name', 'Latitude')} ({lats.attrs.get('units', 'degrees_north')})")
     plt.tight_layout()
     plt.show()
 
 
+import torch
+from torch.utils.data import Dataset, DataLoader
+import xarray as xr
+import numpy as np
+
+class ItalyWeatherDataset(Dataset):
+    
+    era5_variables = ["u10", "v10"]
+    vhr_variables = ["U_10M", "V_10M"]
+    
+    def __init__(self, era5_dataset, vhr_dataset , transform=None, target_transform=None):
+        super().__init__()
+        self.era5_dataset = era5_dataset
+        self.vhr_dataset = vhr_dataset
+        self.transform = transform
+        self.target_transform = target_transform # Placeholder for now
+
+        self.num_samples = len(self.era5_dataset.valid_time) # TODO: assert that era5 and vhr have the same length
+
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        if not 0 <= idx < self.num_samples:
+            raise IndexError(f"Index {idx} is out of bounds for dataset with size {self.num_samples}")
+
+        # Select data for the given time index using .isel for integer-based selection
+        era_sample_slice = self.era5_dataset.isel(valid_time=idx)
+        vhr_sample_slice = self.vhr_dataset.isel(time=idx)
+
+        # Extract the specified variables and stack them
+        # .data is used to get the underlying numpy array (or dask array which then gets computed)
+        # .values is an alias for .data that also computes dask arrays
+        era_data_arrays = [era_sample_slice[var_name].values for var_name in self.era5_variables]
+        vhr_data_arrays = [vhr_sample_slice[var_name].values for var_name in self.vhr_variables]
+
+        # Stack along a new "channel" dimension (axis=0)
+        # This results in a NumPy array of shape (num_variables, rlat_dim, rlon_dim)
+        era_stacked_data_np = np.stack(era_data_arrays, axis=0)
+        vhr_stacked_data_np = np.stack(vhr_data_arrays, axis=0)
+
+        # Convert to PyTorch tensor
+        era_sample_tensor = torch.from_numpy(era_stacked_data_np).float()
+        vhr_sample_tensor = torch.from_numpy(vhr_stacked_data_np).float()
+
+        if self.transform:
+            era_sample_tensor = self.transform(era_sample_tensor)
+            vhr_sample_tensor = self.transform(vhr_sample_tensor)
+
+        era_metadata = {
+            'valid_time': pd.to_datetime(era_sample_slice.valid_time.values),
+            'expver': era_sample_slice.expver.values.item() if 'expver' in era_sample_slice else None,
+            'number': era_sample_slice.number.values.item() if 'number' in era_sample_slice else None,
+        }
+
+        vhr_metadata = {
+            'time': pd.to_datetime(vhr_sample_slice.time.values),
+            'expver': vhr_sample_slice.expver.values.item() if 'expver' in vhr_sample_slice else None,
+            'number': vhr_sample_slice.number.values.item() if 'number' in vhr_sample_slice else None,
+        }
+
+        return era_sample_tensor, era_metadata, vhr_sample_tensor, vhr_metadata
+
+    
+
+
 if __name__ == "__main__":
     era5_path = "datasets/regridded_era5.nc"
-    vhr_path = "datasets/vhr-rea.nc"
-
     era5_data = xr.open_dataset(era5_path, mask_and_scale=True)
     print("--- ERA5 Data Loaded ---")
     print(era5_data)
+    
+    vhr_path = "datasets/vhr-rea.nc"
+    vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
+    print("--- VHR Data Loaded ---")
+    print(vhr_data)
 
-    # vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
-    # print("\n--- VHR Data Loaded ---")
-    # print(vhr_data)
+    italy_weather_dataset = ItalyWeatherDataset(era5_data, vhr_data)
 
-    plot_dataset_image_from_path(era5_path)
+    print(f"\nDataset length: {len(italy_weather_dataset)}")
 
-    print("\n----------------------------")
+    sample_idx = 0
+    era5_sample_tensor, era5_metadata, vhr_sample_tensor, vhr_metadata = italy_weather_dataset[sample_idx]
+    print(f"\n--- Sample {sample_idx} ---")
+    print(f"--- ERA ---")
+    print(f"Tensor shape: {era5_sample_tensor.shape}") # Expected: (2, num_rlat, num_rlon)
+    print(f"Tensor dtype: {era5_sample_tensor.dtype}")
+    print(f"Metadata: {era5_metadata}")
+    print(f"--- VHR ---")
+    print(f"Tensor shape: {vhr_sample_tensor.shape}") # Expected: (2, num_rlat, num_rlon)
+    print(f"Tensor dtype: {vhr_sample_tensor.dtype}")
+    print(f"Metadata: {vhr_metadata}")
+    print(f"-----------------------------")
 
-    print(era5_data)
-    print("\n----------------------------")
+    plot_dataset_sample(era5_sample_tensor, vhr_sample_tensor)
 
-    ds_subset = era5_data[["u10", "v10"]]
+    # # 5. Test with a DataLoader
+    # print("\n--- Testing with DataLoader ---")
+    # batch_size = 4
+    # dataloader = DataLoader(italy_weather_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
-    print(ds_subset)
-    print("\n----------------------------")
+    # # Iterate over a few batches
+    # for i, (batch_tensors, batch_metadata) in enumerate(dataloader):
+    #     print(f"\nBatch {i+1}:")
+    #     print(f"  Batch Tensors shape: {batch_tensors.shape}") # Expected: (batch_size, 2, num_rlat, num_rlon)
+    #     print(f"  Batch Tensors dtype: {batch_tensors.dtype}")
+    #     print(f"  Metadata for first item in batch:")
+    #     print(f"    valid_time: {batch_metadata['valid_time'][0]}") # Note: metadata fields are batched
+    #     print(f"    expver: {batch_metadata['expver'][0]}")
+    #     print(f"    number: {batch_metadata['number'][0]}") # This will be a tensor if it's numeric
+    #     if i >= 1: # Print 2 batches
+    #         break
 
-    df = ds_subset.to_dataframe()
-    print(df)
-    print("\n----------------------------")
+    # # Example with a simple transform (e.g., normalization placeholder)
+    # def example_transform(tensor):
+    #     # Example: (tensor - mean) / std (calculate mean/std over the dataset or use fixed values)
+    #     return (tensor * 2) - 1 # A simple scaling and shifting
 
-    df = df.reset_index()
-    print(df)
-    print("\n----------------------------")
-
-    import sys
-    sys.exit(111)
-
-    # print("Creating training_set...")
-    # training_set = []
-    # # Loop for first two time steps (indices 0 and 1)
-    # for i in range(min(len(era5_data.valid_time), len(vhr_data.time), 2)):
-    #     print(f"Processing time index {i}")
-    #     X_slice = era5_data.isel(valid_time=i)
-    #     y_slice = vhr_data.isel(time=i)
-    #     print(f"  X_slice (from ERA5) valid_time: {X_slice.valid_time.values}")
-    #     print(f"  y_slice (from VHR)  time: {y_slice.time.values}")
-    #     training_set.append((X_slice, y_slice))
-    # print("----------------------------")
-
-    # # Define X and y for tuple indexing
-    # X_INDEX = 0
-    # Y_INDEX = 1
-
-    # dataset_pair_index = 0 # Which pair from training_set to plot (e.g., 0 for the first time step)
-
-    # if training_set:
-    #     print(f"\nPlotting X component (ERA5-like) for training pair index {dataset_pair_index}:")
-    #     plot_slice_wind_data(training_set[dataset_pair_index][X_INDEX])
-
-    #     print(f"\nPlotting Y component (VHR-like) for training pair index {dataset_pair_index}:")
-    #     plot_slice_wind_data(training_set[dataset_pair_index][Y_INDEX])
-    # else:
-    #     print("Training set is empty, skipping plotting.")
-
-    # # # Your original calls to plot_dataset_image_from_path can also be used for comparison
-    # # print("\nPlotting VHR data directly from path (first time step):")
-    # # plot_dataset_image_from_path(vhr_path, time_index_to_plot=0)
-    # # print("\nPlotting ERA5 data directly from path (first time step):")
-    # # plot_dataset_image_from_path(era5_path, time_index_to_plot=0)
+    # transformed_dataset = ERA5XarrayDataset(era5_data, variables=['u10', 'v10'], transform=example_transform)
+    # transformed_sample, _ = transformed_dataset[0]
+    # print("\n--- Transformed Sample ---")
+    # print(f"Transformed tensor (first few values of first channel):\n{transformed_sample[0, :2, :2]}")
+    # original_sample, _ = era5_pytorch_dataset[0]
+    # print(f"Original tensor (first few values of first channel):\n{original_sample[0, :2, :2]}")
