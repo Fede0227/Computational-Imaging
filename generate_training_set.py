@@ -77,15 +77,10 @@ class ItalyWeatherDataset(Dataset):
         era_time_numeric = pd.Timestamp(era_datetime64_val).timestamp()
         vhr_time_numeric = pd.Timestamp(vhr_datetime64_val).timestamp()
 
-        era_metadata = {
-            'valid_time': era_time_numeric,
-        }
+        # this is just for safety, it should never happen that the datasets get misaligned
+        assert vhr_time_numeric == era_time_numeric, "TimeStamps don't match"
 
-        vhr_metadata = {
-            'time': vhr_time_numeric,
-        }
-
-        return era_sample_tensor, era_metadata, vhr_sample_tensor, vhr_metadata
+        return era_sample_tensor, vhr_sample_tensor
     
 
 if __name__ == "__main__":
@@ -110,7 +105,7 @@ if __name__ == "__main__":
 
     if len(italy_weather_dataset) > 0:
         sample_idx = 0
-        era5_sample, era5_sample_metadata, vhr_sample, vhr_sample_metadata  = italy_weather_dataset[sample_idx]
+        era5_sample, vhr_sample = italy_weather_dataset[sample_idx]
         print(f"\n--- Sample {sample_idx} ---")
         print(f"--- Low-Res Input (ERA5) ---")
         print(f"Tensor shape: {era5_sample.shape}") 
@@ -125,7 +120,7 @@ if __name__ == "__main__":
         print("\n--- Testing with DataLoader ---")
         dataloader = DataLoader(italy_weather_dataset, batch_size=4, shuffle=True, num_workers=0)
 
-        era5_batch, era5_batch_metadata, vhr_batch, vhr_batch_metadata = next(iter(dataloader))
+        era5_batch, vhr_batch = next(iter(dataloader))
         
         print("\n--- Batch from DataLoader ---")
         print(f"Batch Low-Res Input shape: {era5_batch.shape}")
