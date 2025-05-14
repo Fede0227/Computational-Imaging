@@ -1,4 +1,7 @@
 *.nc
 *.csv
 *.pt
+*.png
+*.pth
 .DS_Store
+__pycache__/
