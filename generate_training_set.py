@@ -241,34 +241,24 @@ if __name__ == "__main__":
     height = 680
     width = 535
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('mps' if torch.mps.is_available() else 'cpu')
     print(f"Using device: {device}")
 
     model = UNet(n_channels_in=num_input_channels, n_channels_out=num_output_channels, bilinear=True).to(device)
     
     dataloader = DataLoader(italy_weather_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-    era5_batch, vhr_batch = next(iter(dataloader))
-    era5_batch.to(device)
-
-    print(f"--- Low-Res Input (ERA5) ---")
-    print(f"Input Tensor shape: {era5_batch.shape}")
-    print(f"Input Tensor dtype: {era5_batch.dtype}")
-
-    # Perform a forward pass
-    try:
-        vhr_predicted = model(era5_batch)
-        print(f"--- Predicted High-Res (VHR) ---")
-        print(f"Output Tensor shape: {vhr_predicted.shape}")
-        print(f"Output Tensor dtype: {vhr_predicted.dtype}")
-
-        # Verify output shape matches target shape (excluding batch size for comparison)
-        # Target shape (for one sample): [num_output_channels, height, width]
-        expected_output_shape = torch.Size([batch_size, num_output_channels, height, width])
-        assert vhr_predicted.shape == expected_output_shape, \
-            f"Output shape mismatch! Expected {expected_output_shape}, got {vhr_predicted.shape}"
-        print("Output shape is correct.")
-
-    except Exception as e:
-        print(f"An error occurred during the forward pass: {e}")
-        import traceback
-        traceback.print_exc()
+    
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    
+    model.train()
+    for epoch in range(3):
+        for era5_batch, vhr_batch in dataloader:
+            era5_batch, vhr_batch = era5_batch.to(device), vhr_batch.to(device)
+    
+            optimizer.zero_grad()
+            outputs = model(era5_batch)
+            loss = criterion(outputs, vhr_batch)
+            loss.backward()
+            optimizer.step()
+        print(f"Epoch {epoch+1}, Loss: {loss.item()}")
