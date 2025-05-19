@@ -1,5 +1,5 @@
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+# os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import torch
 from torch.utils.data import Dataset
@@ -108,12 +108,21 @@ if __name__ == "__main__":
     print("--- ERA5 Data Loaded ---")
     print(era5_data) # Keep it concise for now
     
-    vhr_path = "datasets/vhr-rea.nc"
-    vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
-    print("--- VHR Data Loaded ---")
-    print(vhr_data)
+    vhr_q1_path = "datasets/vhr_q1.nc"
+    vhr_q2_path = "datasets/vhr_q2.nc"
+    vhr_data1 = xr.open_dataset(vhr_q1_path, mask_and_scale=True)
+    vhr_data2 = xr.open_dataset(vhr_q2_path, mask_and_scale=True)
 
-    italy_weather_dataset = ItalyWeatherDataset(era5_data, vhr_data)
+    print("\n--- VHR Data 1 ---")
+    print(vhr_data1)
+    print("\n--- VHR Data 2 ---")
+    print(vhr_data2)
+
+    vhr_data_combined = xr.concat([vhr_data1, vhr_data2], dim="time")
+    print("\n--- Combined VHR Data (Concatenated) ---")
+    print(vhr_data_combined)
+
+    italy_weather_dataset = ItalyWeatherDataset(era5_data, vhr_data_combined)
     print(f"\nFull dataset length: {len(italy_weather_dataset)}")
 
     era_tensors_list = []

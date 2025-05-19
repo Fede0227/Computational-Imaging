@@ -16,7 +16,7 @@ era5_data = xr.open_dataset("datasets/era5.nc",
 )
 
 # Step 2: Load target grid (static, no need for chunking)
-target_grid = xr.open_dataset("datasets/vhr-rea.nc")
+target_grid = xr.open_dataset("datasets/vhr_q1.nc")
 
 # Step 3: Create regridder with cached weights (FAST)
 regridder = xe.Regridder(
