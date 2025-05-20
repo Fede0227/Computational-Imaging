@@ -16,7 +16,12 @@ era5_data = xr.open_dataset("datasets/era5.nc",
 )
 
 # Step 2: Load target grid (static, no need for chunking)
-target_grid = xr.open_dataset("datasets/vhr_q1.nc")
+vhr_q1_path = "datasets/vhr_q1.nc"
+vhr_data1 = xr.open_dataset(vhr_q1_path, mask_and_scale=True)
+vhr_q2_path = "datasets/vhr_q2.nc"
+vhr_data2 = xr.open_dataset(vhr_q2_path, mask_and_scale=True)
+
+target_grid = xr.concat([vhr_data1, vhr_data2], dim="time")
 
 # Step 3: Create regridder with cached weights (FAST)
 regridder = xe.Regridder(
