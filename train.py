@@ -24,9 +24,10 @@ else:
 print(f"USING DEVICE {device}")
 
 DATASET_PATH = "datasets/normalized/"
-EPOCHS = 50
-BATCH_SIZE = 2
-EARLY_STOPPING_PATIENCE = 5
+WEIGHTS_PATH = "models/unet_sr"
+EPOCHS = 120
+BATCH_SIZE = 8
+EARLY_STOPPING_PATIENCE = 10
 
 print(f"\n--- Loading preprocessed data from {DATASET_PATH} ---")
 
@@ -57,6 +58,7 @@ print(f"Training UNet for {EPOCHS} with batch size of {BATCH_SIZE}")
 best_val_loss = float('inf')
 patience_counter = 0
 best_model_state = None
+early_stopped_epoch = -1 # To record when early stopping happens
 
 history = {
     'train_loss': torch.zeros((EPOCHS,)),
@@ -64,10 +66,6 @@ history = {
     'val_loss': torch.zeros((EPOCHS,)),
     'val_ssim': torch.zeros((EPOCHS,))
 }
-
-weights_path = "models/unet_sr"
-
-
 
 def compute_ssim_for_batch(y_pred_tensor, y_true_tensor, data_range_option="dynamic_channel_wise"):
     """
@@ -121,97 +119,104 @@ def compute_ssim_for_batch(y_pred_tensor, y_true_tensor, data_range_option="dyna
         
     return total_ssim_for_batch / batch_size # Average SSIM for the batch
 
-
-for epoch in tqdm(range(EPOCHS), desc="Training Epochs"):
+epoch_pbar = tqdm(range(EPOCHS), desc="Training Epochs")
+for epoch in epoch_pbar:
     model.train()
     train_loss = 0
     train_ssim = 0
     start_time = time.time()
-    
+
     for t, (x, y) in enumerate(train_dataloader):
         x = x.to(device)
         y = y.to(device)
         
         optimizer.zero_grad()
-
         y_pred = model(x)
         loss = mse_loss(y_pred, y)
         loss.backward()
         optimizer.step()
 
         train_loss += loss.item()
-
         with torch.no_grad():
-        #    train_ssim += ssim(y_pred, y)
-            train_ssim += compute_ssim_for_batch(y_pred, y, data_range_option="fixed_0_1") # NEW (assuming normalized [0,1])
-        
-        # Measure time and show progress
-        if (t + 1) % 5 == 0 or t == len(train_dataloader) - 1:  # Update every 5 batches to reduce output spam
-            elapsed_time = time.time() - start_time
-            print(
-                f"({elapsed_time}) Epoch ({epoch+1}/{EPOCHS}) Batch {t+1}/{len(train_dataloader)} -> "
-                f"Train Loss = {train_loss/(t+1):.4f}, Train SSIM = {train_ssim/(t+1):.4f}",
-                end="\r",
-            )
+            train_ssim += compute_ssim_for_batch(y_pred, y, data_range_option="fixed_0_1")
 
-        # Average training metrics
-        train_batch_count = len(train_dataloader)
-        history['train_loss'][epoch] = train_loss / train_batch_count
-        history['train_ssim'][epoch] = train_ssim / train_batch_count
+    # Average training metrics for the epoch
+    train_batch_count = len(train_dataloader)
+    history['train_loss'][epoch] = train_loss / train_batch_count
+    history['train_ssim'][epoch] = train_ssim / train_batch_count
 
-        # ---------- Validation Phase ----------
-        model.eval()
-        val_loss = 0.0
-        val_ssim = 0.0
-        
-        with torch.no_grad():
-            for x, y in validation_dataloader:
-                x = x.to(device)
-                y = y.to(device)
-                
-                # Forward pass only (no backprop in validation)
-                y_pred = model(x)
-                loss = mse_loss(y_pred, y)
-                
-                # Update metrics
-                val_loss += loss.item()
-                # val_ssim += ssim(y_pred, y)
-                val_ssim += compute_ssim_for_batch(y_pred, y, data_range_option="fixed_0_1") # NEW (assuming normalized [0,1])
-        
-        # Average validation metrics
-        validation_batch_count = len(validation_dataloader)
-        history['val_loss'][epoch] = val_loss / validation_batch_count
-        history['val_ssim'][epoch] = val_ssim / validation_batch_count
-        
-        # Print epoch results
-        print(
-            f"\nEpoch {epoch+1}/{EPOCHS} - "
-            f"Train Loss: {history['train_loss'][epoch]:.4f}, Train SSIM: {history['train_ssim'][epoch]:.4f}, "
-            f"Val Loss: {history['val_loss'][epoch]:.4f}, Val SSIM: {history['val_ssim'][epoch]:.4f}"
-        )
+    # ---------- Validation Phase ----------
+    model.eval()
+    val_loss = 0.0
+    val_ssim = 0.0
+    
+    with torch.no_grad():
+        for x, y in validation_dataloader:
+            x = x.to(device)
+            y = y.to(device)
+            
+            # Forward pass only (no backprop in validation)
+            y_pred = model(x)
+            loss = mse_loss(y_pred, y)
+            
+            # Update metrics
+            val_loss += loss.item()
+            # val_ssim += ssim(y_pred, y)
+            val_ssim += compute_ssim_for_batch(y_pred, y, data_range_option="fixed_0_1")
+    
+    # average validation metrics for the epoch
+    validation_batch_count = len(validation_dataloader)
+    history['val_loss'][epoch] = val_loss / validation_batch_count
+    history['val_ssim'][epoch] = val_ssim / validation_batch_count
+    
+    # Calculate elapsed time
+    elapsed_time_epoch = time.time() - start_time
+    # Print a single informative line per epoch
+    if (epoch + 1) % 5 == 0 or epoch == 0:  # Print every 5 epochs and the first epoch
+        print(f"Epoch {epoch+1:3d}/{EPOCHS} ({elapsed_time_epoch:.1f}s) - "
+              f"Loss: {history['train_loss'][epoch]:.4f}/{history['val_loss'][epoch]:.4f} - "
+              f"SSIM: {history['train_ssim'][epoch]:.4f}/{history['val_ssim'][epoch]:.4f}")
 
-        # early stopping check
-        current_val_loss = history["val_loss"][epoch]
-        if current_val_loss < best_val_loss:
-            best_val_loss = current_val_loss
-            patience_counter = 0
-            best_model_state = model.state_dict().copy()
-            # Save best model
-            if weights_path is not None:
-                torch.save(model.state_dict(), f"{weights_path}_best.pt")
-        else:
-            patience_counter += 1
-            if EARLY_STOPPING_PATIENCE is not None and patience_counter >= EARLY_STOPPING_PATIENCE:
-                print(f"Early stopping triggered after {epoch+1} epochs")
-                # Restore best model and break to test
-                model.load_state_dict(best_model_state)
-                break
+    # early stopping check (AFTER validation for the epoch)
+    current_val_loss = history["val_loss"][epoch]
+    if current_val_loss < best_val_loss:
+        best_val_loss = current_val_loss
+        patience_counter = 0
+        best_model_state = model.state_dict().copy()
+        # Save best model
+        if WEIGHTS_PATH is not None:
+            torch.save(model.state_dict(), f"{WEIGHTS_PATH}_best.pt")
+            print(f"Saved new best model to {WEIGHTS_PATH}_best.pt")
+    else:
+        patience_counter += 1
+        if EARLY_STOPPING_PATIENCE is not None and patience_counter >= EARLY_STOPPING_PATIENCE:
+            print(f"Early stopping triggered after {epoch+1} epochs. Patience: {patience_counter}/{EARLY_STOPPING_PATIENCE}")
+            early_stopped_epoch = epoch + 1
+            if best_model_state: # Check if a best model was ever saved
+                 model.load_state_dict(best_model_state)
+                 print("Restored best model weights.")
+            break # This break will exit the EPOCH loop
+
+epoch_pbar.close()
 
 # save model if not done through early stopping
-if weights_path is not None and (EARLY_STOPPING_PATIENCE is None or patience_counter < EARLY_STOPPING_PATIENCE):
-    torch.save(model.state_dict(), f"{weights_path}_final.pt")
+if WEIGHTS_PATH is not None:
+    if early_stopped_epoch != -1: # Early stopping occurred
+        print(f"Training stopped early at epoch {early_stopped_epoch}. Best model already saved.")
+    elif EPOCHS > 0 : # Ensure some training happened
+        torch.save(model.state_dict(), f"{WEIGHTS_PATH}_final_epoch_{EPOCHS}.pt")
+        print(f"Saved final model at epoch {EPOCHS} to {WEIGHTS_PATH}_final_epoch_{EPOCHS}.pt")
 
-print(history)
+# Trim history if early stopping occurred
+if early_stopped_epoch != -1 and early_stopped_epoch < EPOCHS:
+    for key in history:
+        history[key] = history[key][:early_stopped_epoch]
+
+print("\n--- Training Summary ---")
+print(f"Final train loss: {history['train_loss'][-1]:.4f}, SSIM: {history['train_ssim'][-1]:.4f}")
+print(f"Final val loss: {history['val_loss'][-1]:.4f}, SSIM: {history['val_ssim'][-1]:.4f}")
+print(f"Best val loss: {best_val_loss:.4f}")
+print("-" * 50)
 
 # test the model 
 model.eval()
