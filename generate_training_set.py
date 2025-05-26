@@ -133,17 +133,17 @@ if __name__ == "__main__":
     test_ratio=0.15
     
     era5_path = "datasets/regridded_era5.nc"
-    vhr_path = "datasets/vhr-rea.nc"
+    # vhr_path = "datasets/vhr-rea.nc"
 
-    # vhr_q1_path = "datasets/vhr_q1.nc"
-    # vhr_q2_path = "datasets/vhr_q2.nc"
-    # vhr_data1 = xr.open_dataset(vhr_q1_path, mask_and_scale=True)
-    # vhr_data2 = xr.open_dataset(vhr_q2_path, mask_and_scale=True)
-    # vhr_data = xr.concat([vhr_data1, vhr_data2], dim="time")
+    vhr_q1_path = "datasets/vhr_q1.nc"
+    vhr_q2_path = "datasets/vhr_q2.nc"
+    vhr_data1 = xr.open_dataset(vhr_q1_path, mask_and_scale=True)
+    vhr_data2 = xr.open_dataset(vhr_q2_path, mask_and_scale=True)
     
     print("Loading datasets...")
     era5_data = xr.open_dataset(era5_path, mask_and_scale=True)
-    vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
+    # vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
+    vhr_data = xr.concat([vhr_data1, vhr_data2], dim="time")
     print(f"ERA5 data loaded: {era5_data.dims}")
     print(f"VHR data loaded: {vhr_data.dims}")
 

@@ -65,7 +65,6 @@ class ResUnet(nn.Module):
 
         self.output_layer = nn.Sequential(
             nn.Conv2d(64, out_channels, kernel_size=1, stride=1),
-            nn.Sigmoid(),
         )
 
     def forward(self, x):
