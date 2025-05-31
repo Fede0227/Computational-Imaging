@@ -92,8 +92,6 @@ class ResidualUNet(nn.Module):
 
         # Final output layer: 1x1 conv with zero initialization and no activation (for stability)
         self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1)
-        nn.init.zeros_(self.final_conv.weight)
-        nn.init.zeros_(self.final_conv.bias)
 
     def forward(self, x):
         skips = []
