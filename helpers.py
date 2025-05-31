@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import numpy as np
+from skimage.metrics import structural_similarity as ssim_skimage
 
 def plot_dataset_sample(era5_sample, vhr_sample):
     # Magnitude M = sqrt(u^2 + v^2)
@@ -33,6 +34,61 @@ def plot_dataset_sample(era5_sample, vhr_sample):
     plt.tight_layout()
     plt.show()
 
+
+def compute_ssim_for_batch(y_pred_tensor, y_true_tensor, data_range_option="dynamic_channel_wise"):
+    """
+    Computes average SSIM for a batch of images using skimage.metrics.ssim.
+    Assumes y_pred_tensor and y_true_tensor are (B, C, H, W) PyTorch tensors.
+    data_range_option:
+        "dynamic_channel_wise": data_range is true_channel.max() - true_channel.min()
+        "fixed_0_1": data_range is 1.0 (assumes data normalized to [0,1])
+        Any other float value will be used as a fixed data_range.
+    """
+    y_pred_np = y_pred_tensor.detach().cpu().numpy()
+    y_true_np = y_true_tensor.detach().cpu().numpy()
+    
+    batch_size = y_true_np.shape[0]
+    num_channels_data = y_true_np.shape[1]
+    
+    total_ssim_for_batch = 0.0
+    
+    for i in range(batch_size): 
+        item_ssim_sum_channels = 0.0
+        for ch_idx in range(num_channels_data): 
+            pred_ch = y_pred_np[i, ch_idx]
+            true_ch = y_true_np[i, ch_idx]
+            
+            current_data_range = None
+            if data_range_option == "dynamic_channel_wise":
+                min_val, max_val = true_ch.min(), true_ch.max()
+                current_data_range = max_val - min_val
+                if current_data_range < 1e-6: # Handle constant image channel or very small range
+                    if np.allclose(pred_ch, true_ch): # Use allclose for float comparison
+                        item_ssim_sum_channels += 1.0
+                    else:
+                        item_ssim_sum_channels += 0.0 
+                    continue 
+            elif data_range_option == "fixed_0_1":
+                current_data_range = 1.0
+            elif isinstance(data_range_option, float):
+                current_data_range = data_range_option
+            else: # Fallback if not recognized
+                current_data_range = true_ch.max() - true_ch.min()
+                if current_data_range < 1e-6:
+                    current_data_range = 1.0 # Default if flat, to avoid div by zero in ssim if pred/true differ
+
+            try:
+                # skimage ssim expects channel axis last for multichannel, but here we do it per channel
+                ssim_val = ssim_skimage(pred_ch, true_ch, data_range=current_data_range, channel_axis=None, win_size=min(7, min(pred_ch.shape)-1 if min(pred_ch.shape)%2==0 else min(pred_ch.shape)))
+                item_ssim_sum_channels += ssim_val
+            except ValueError as e:
+                # print(f"Warning: SSIM calculation error for item {i} chan {ch_idx}. Shape: {true_ch.shape}. Range: {current_data_range}. Error: {e}. Using SSIM=0.")
+                if np.allclose(pred_ch, true_ch): item_ssim_sum_channels += 1.0
+                else: item_ssim_sum_channels += 0.0 
+
+        total_ssim_for_batch += item_ssim_sum_channels / num_channels_data 
+        
+    return total_ssim_for_batch / batch_size
 
 def gaussian(window_size, sigma):
     gauss = torch.Tensor([np.exp(-(x - window_size // 2) ** 2 / float(2 * sigma ** 2)) for x in range(window_size)])

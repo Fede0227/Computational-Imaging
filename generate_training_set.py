@@ -128,9 +128,7 @@ if __name__ == "__main__":
     OUTPUT_DIR = "datasets/normalized_minmax"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    train_ratio=0.7
-    val_ratio=0.15
-    test_ratio=0.15
+    train_ratio=0.8
     
     era5_path = "datasets/regridded_era5.nc"
     # vhr_path = "datasets/vhr-rea.nc"
@@ -151,15 +149,14 @@ if __name__ == "__main__":
 
     dataset_size = len(full_dataset)
     train_size = int(train_ratio * dataset_size)
-    val_size = int(val_ratio * dataset_size)
-    test_size = dataset_size - train_size - val_size
+    test_size = dataset_size - train_size
     
     # adjust test_size to account for rounding
-    if train_size + val_size + test_size != dataset_size: test_size = dataset_size - train_size - val_size
+    if train_size + test_size != dataset_size: test_size = dataset_size - train_size
 
-    train_dataset, val_dataset, test_dataset = random_split(full_dataset, [train_size, val_size, test_size], generator=torch.Generator().manual_seed(42))
+    train_dataset, test_dataset = random_split(full_dataset, [train_size, test_size], generator=torch.Generator().manual_seed(42))
     
-    print(f"Dataset split: Train={len(train_dataset.indices)}, Validation={len(val_dataset.indices)}, Test={len(test_dataset.indices)}")
+    print(f"Dataset split: Train={len(train_dataset.indices)}, Test={len(test_dataset.indices)}")
     
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False, num_workers=4)
     
@@ -190,15 +187,12 @@ if __name__ == "__main__":
     
     dataset_splits = {
         'train': torch.utils.data.Subset(normalized_full_dataset, train_dataset.indices),
-        'val': torch.utils.data.Subset(normalized_full_dataset, val_dataset.indices),
         'test': torch.utils.data.Subset(normalized_full_dataset, test_dataset.indices)
     }
     
     if SAVE:
-        torch.save({'train_indices': train_dataset.indices, 'val_indices': val_dataset.indices, 'test_indices': test_dataset.indices},
-                   os.path.join(OUTPUT_DIR, 'dataset_splits.pt'))
+        torch.save({'train_indices': train_dataset.indices, 'test_indices': test_dataset.indices}, os.path.join(OUTPUT_DIR, 'dataset_splits.pt'))
         save_split_data(dataset_splits['train'], 'train', OUTPUT_DIR)
-        save_split_data(dataset_splits['val'], 'val', OUTPUT_DIR)
         save_split_data(dataset_splits['test'], 'test', OUTPUT_DIR)
         print("\nNormalized datasets saved successfully!")
 
