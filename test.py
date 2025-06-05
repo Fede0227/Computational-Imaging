@@ -16,14 +16,15 @@ if torch.cuda.is_available(): device = torch.device("cuda:0")
 if torch.mps.is_available(): device = torch.device("mps")
 
 DATASET_PATH = "datasets/normalized_minmax/"
-BATCH_SIZE = 2
-NUM_SAMPLES = 2
+BATCH_SIZE = 4
+NUM_SAMPLES = 4
 NUM_CHANNELS = 2
 SSIM_DATA_RANGE = 1.0
-# MODEL_PATH = "models/unet_L1SSIM_loss_300_epochs_2_batch_1em4_lr_final.pt"
-MODEL_PATH = "models/unet_L1SSIM_loss_300_epochs_2_batch_1em4_lr_best.pt"
+# MODEL_PATH = "old_models/unet_L1SSIM_loss_300_epochs_8_batch_1em3_lr_1em5_weightdecay_best.pt"
+MODEL_PATH = "models/unet_L1SSIM_loss_300_epochs_8_batch_1em3_lr_1em5_weightdecay_best.pt"
 
-test_data = torch.load(DATASET_PATH + "normalized_test_data.pt")
+# test_data = torch.load(DATASET_PATH + "normalized_test_data.pt")
+test_data = torch.load("datasets/test_data.pt")
 test_dataset = TensorDataset(test_data["era5"], test_data["vhr"])
 print(f"Loaded TensorDataset test with {len(test_dataset)} samples.")
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)

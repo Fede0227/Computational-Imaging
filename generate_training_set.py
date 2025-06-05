@@ -6,8 +6,15 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import numpy as np
 import xarray as xr
 from tqdm import tqdm
+import math
 
 SAVE = os.getenv(key="SAVE", default=0)
+COORDINATES = os.getenv(key="COORDINATES", default=0)
+
+print("-" * 20)
+print(SAVE)
+print(COORDINATES)
+print("-" * 20)
  
 class ItalyWeatherDataset(Dataset):
     ERA5_VARIABLES = ["u10", "v10"]
@@ -45,6 +52,15 @@ class ItalyWeatherDataset(Dataset):
         era_stacked_data_np = np.stack(era_data_arrays, axis=0)
         era_sample_tensor = torch.from_numpy(era_stacked_data_np).float()
         era_sample_tensor = self.extract_region(era_sample_tensor)
+
+        if COORDINATES == "1":
+            era_u10 = era_sample_tensor[0, :, :]**2
+            era_v10 = era_sample_tensor[1, :, :]**2
+            era5_magnitude = torch.sqrt(era_u10 + era_v10)
+            era5_direction = (180 + (180 / math.pi) * torch.atan2(-era_u10, -era_v10)) % 360
+            era_sample_tensor = torch.from_numpy(np.stack([era5_magnitude, era5_direction], axis=0)).float()
+            print("CHANGED ERA5 COORDINATES")
+
         if self.era5_normalizer is not None: era_sample_tensor = self.era5_normalizer.normalize(era_sample_tensor)
         
         # processing VHR data
@@ -53,6 +69,15 @@ class ItalyWeatherDataset(Dataset):
         vhr_stacked_data_np = np.stack(vhr_data_arrays, axis=0)
         vhr_sample_tensor = torch.from_numpy(vhr_stacked_data_np).float()
         vhr_sample_tensor = self.extract_region(vhr_sample_tensor)
+        
+        if COORDINATES == "1":
+            vhr_u10 = vhr_sample_tensor[0, :, :]**2
+            vhr_v10 = vhr_sample_tensor[1, :, :]**2
+            vhr_magnitude = torch.sqrt(vhr_u10 + vhr_v10)
+            vhr_direction = (180 + (180 / math.pi) * torch.atan2(-vhr_u10, -vhr_v10)) % 360
+            vhr_sample_tensor = torch.from_numpy(np.stack([vhr_magnitude, vhr_direction], axis=0)).float()
+            print("CHANGED VHR COORDINATES")
+
         if self.vhr_normalizer is not None: vhr_sample_tensor = self.vhr_normalizer.normalize(vhr_sample_tensor)
 
         return era_sample_tensor, vhr_sample_tensor
@@ -125,23 +150,28 @@ def save_split_data(dataset_subset, split_name, output_dir):
  
  
 if __name__ == "__main__":
-    OUTPUT_DIR = "datasets/normalized_minmax"
+    OUTPUT_DIR = "datasets/normalized_minmax_vectors"
+    if COORDINATES: OUTPUT_DIR = "datasets/normalized_minmax_direction"
+
+    print(OUTPUT_DIR)
+    print("OUTPUT_DIR")
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     train_ratio=0.8
     
     era5_path = "datasets/regridded_era5.nc"
-    # vhr_path = "datasets/vhr-rea.nc"
+    vhr_path = "datasets/vhr-rea.nc"
 
-    vhr_q1_path = "datasets/vhr_q1.nc"
-    vhr_q2_path = "datasets/vhr_q2.nc"
-    vhr_data1 = xr.open_dataset(vhr_q1_path, mask_and_scale=True)
-    vhr_data2 = xr.open_dataset(vhr_q2_path, mask_and_scale=True)
+    # vhr_q1_path = "datasets/vhr_q1.nc"
+    # vhr_q2_path = "datasets/vhr_q2.nc"
+    # vhr_data1 = xr.open_dataset(vhr_q1_path, mask_and_scale=True)
+    # vhr_data2 = xr.open_dataset(vhr_q2_path, mask_and_scale=True)
     
     print("Loading datasets...")
     era5_data = xr.open_dataset(era5_path, mask_and_scale=True)
-    # vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
-    vhr_data = xr.concat([vhr_data1, vhr_data2], dim="time")
+    # vhr_data = xr.concat([vhr_data1, vhr_data2], dim="time")
+    vhr_data = xr.open_dataset(vhr_path, mask_and_scale=True)
     print(f"ERA5 data loaded: {era5_data.dims}")
     print(f"VHR data loaded: {vhr_data.dims}")
 
@@ -196,3 +226,8 @@ if __name__ == "__main__":
         save_split_data(dataset_splits['test'], 'test', OUTPUT_DIR)
         print("\nNormalized datasets saved successfully!")
 
+    from helpers import plot_dataset_direction_sample
+    era_sample, vhr_sample = normalized_full_dataset[0]
+    print(era_sample)
+    print(vhr_sample)
+    plot_dataset_direction_sample(era_sample, vhr_sample)

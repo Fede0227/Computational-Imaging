@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from skimage.metrics import structural_similarity as ssim_skimage
 
-def plot_dataset_sample(era5_sample, vhr_sample):
+def plot_dataset_vector_sample(era5_sample, vhr_sample):
     # Magnitude M = sqrt(u^2 + v^2)
     # PyTorch's torch.sqrt and element-wise operations make this easy.
     era5_magnitude = torch.sqrt(era5_sample[0, :, :]**2 + era5_sample[1, :, :]**2)
@@ -34,6 +34,32 @@ def plot_dataset_sample(era5_sample, vhr_sample):
     plt.tight_layout()
     plt.show()
 
+def plot_dataset_direction_sample(era5_sample, vhr_sample):
+    era5_magnitude = era5_sample[0, :, :]
+    vhr_magnitude = vhr_sample[0, :, :]
+
+    # Matplotlib typically works best with NumPy arrays.
+    era5_magnitude_numpy = era5_magnitude.cpu().numpy()
+    vhr_magnitude_numpy = vhr_magnitude.cpu().numpy()
+
+    plt.figure(figsize=(10, 8))
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(era5_magnitude_numpy, cmap='viridis', origin='lower')
+    plt.title('ERA5 Wind Magnitude Map') # Updated title slightly
+    plt.xlabel('Pixel X-coordinate (width)')
+    plt.ylabel('Pixel Y-coordinate (height)')
+    plt.colorbar(label='Wind Magnitude')
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(vhr_magnitude_numpy, cmap='viridis', origin='lower')
+    plt.title('VHR Wind Magnitude Map') # Updated title slightly
+    plt.xlabel('Pixel X-coordinate (width)')
+    plt.ylabel('Pixel Y-coordinate (height)')
+    plt.colorbar(label='Wind Magnitude')
+
+    plt.tight_layout()
+    plt.show()
 
 def compute_ssim_for_batch(y_pred_tensor, y_true_tensor, data_range_option="dynamic_channel_wise"):
     """
@@ -163,7 +189,7 @@ class L1SSIMLoss(nn.Module):
         """
         Combined L1 and SSIM Loss.
         Loss = alpha * (1-SSIM) + (1-alpha) * L1
-        alpha: weight for SSIM loss. Common values are 0.5 or 0.84 (from some papers).
+        alpha: weight for SSIM loss.
         """
         super(L1SSIMLoss, self).__init__()
         self.alpha = alpha
@@ -175,4 +201,23 @@ class L1SSIMLoss(nn.Module):
         l1_val_loss = self.l1_loss(y_pred, y_true)
         
         combined_loss = self.alpha * ssim_val_loss + (1 - self.alpha) * l1_val_loss
+        return combined_loss
+
+class MSESSIMLoss(nn.Module):
+    def __init__(self, alpha=0.8, ssim_window_size=11, ssim_data_range=1.0, ssim_channel=1):
+        """
+        Combined MSE and SSIM Loss.
+        Loss = alpha * (1-SSIM) + (1-alpha) * MSE
+        alpha: weight for SSIM loss.
+        """
+        super(MSESSIMLoss, self).__init__()
+        self.alpha = alpha
+        self.mse_loss = nn.MSELoss()
+        self.ssim_loss_fn = SSIMLoss(window_size=ssim_window_size, data_range=ssim_data_range, channel=ssim_channel)
+
+    def forward(self, y_pred, y_true):
+        ssim_val_loss = self.ssim_loss_fn(y_pred, y_true)
+        mse_val_loss = self.mse_loss(y_pred, y_true)
+        
+        combined_loss = self.alpha * ssim_val_loss + (1 - self.alpha) * mse_val_loss
         return combined_loss

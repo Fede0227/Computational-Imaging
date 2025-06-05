@@ -7,27 +7,50 @@ from torch.nn import MSELoss
 from tqdm import tqdm
 import time
 from model import ResidualUNet
-from helpers import L1SSIMLoss, compute_ssim_for_batch
+from helpers import L1SSIMLoss, MSESSIMLoss, compute_ssim_for_batch
+import numpy as np
+import random
+
+COORDINATES = os.getenv(key="COORDINATES", default=0)
+
+def fix_random(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+fix_random(seed=1337)
 
 device = "cpu"
 if torch.cuda.is_available(): device = torch.device("cuda:0")
 if torch.mps.is_available(): device = torch.device("mps")
 print(f"Using device: {device}")
 
-DATASET_PATH = "datasets/normalized_minmax/"
+DATASET_PATH = "datasets/normalized_minmax_vectors/"
+COORDINATES_TYPE = "vectors"
+if COORDINATES:
+    DATASET_PATH = "datasets/normalized_minmax_direction/"
+    COORDINATES_TYPE = "direction"
+
 MODEL_PATH = "models/"
-EPOCHS = 200
-BATCH_SIZE = 2
+EPOCHS = 300
+BATCH_SIZE = 4
 NUM_CHANNELS = 2
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-3
+WEIGHT_DECAY = 1e-5
 SSIM_DATA_RANGE = 1.0
 
-LOSS = "L1SSIM"
+LOSS = "l1ssim"
 if LOSS == "mse": criterion = MSELoss()
+if LOSS == "msessim": criterion = MSESSIMLoss()
 else: criterion = L1SSIMLoss()
 criterion.to(device)
 
-MODEL_NAME = f"unet_{LOSS}_loss_{EPOCHS}_epochs_{BATCH_SIZE}_batch_1em4_lr"
+MODEL_NAME = f"unet_{COORDINATES_TYPE}_{LOSS}_loss_{EPOCHS}_epochs_{BATCH_SIZE}_batch_1em3_lr_1em5_weightdecay"
 
 print(f"\n--- Loading preprocessed data from {DATASET_PATH} ---")
 
@@ -44,16 +67,16 @@ test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False,
 model = ResidualUNet(in_channels=NUM_CHANNELS, out_channels=NUM_CHANNELS)
 model.to(device)
 
-# print("-"*50)
+print("-"*50)
 # print(model)
-# total_params = sum(p.numel() for p in model.parameters())
-# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-# print(f"Total parameters: {total_params}")
-# print(f"Trainable parameters: {trainable_params}")
-# print(f"Training with precision: {next(model.parameters()).dtype}")
-# print("-"*50)
+total_params = sum(p.numel() for p in model.parameters())
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(f"Total parameters: {total_params}")
+print(f"Trainable parameters: {trainable_params}")
+print(f"Training with precision: {next(model.parameters()).dtype}")
+print("-"*50)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
 print(f"Training UNet for {EPOCHS} with batch size {BATCH_SIZE}, {LOSS} loss, {LEARNING_RATE} learning rate.")
 
@@ -115,8 +138,8 @@ for epoch in epoch_pbar:
     history["val_ssim"][epoch] = val_ssim_sum / validation_batch_count
     
     elapsed_time_epoch = time.time() - start_time
-    print(f"Epoch {epoch+1:3d}/{EPOCHS} ({elapsed_time_epoch:.1f}s) - "
-            f"Train: Loss: {history['train_loss'][epoch]:.6f} - SSIM: {history['train_ssim'][epoch]:.6f}"
+    print(f"Epoch {epoch+1:3d}/{EPOCHS} | "
+            f"Train: Loss: {history['train_loss'][epoch]:.6f} - SSIM: {history['train_ssim'][epoch]:.6f} "
             f"Val:   Loss: {history['val_loss'][epoch]:.6f} - SSIM: {history['val_ssim'][epoch]:.6f}")
 
     current_val_loss = history["val_loss"][epoch]

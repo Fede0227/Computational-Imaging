@@ -61,7 +61,7 @@ class UpBlock(nn.Module):
 # Residual U-Net
 # This combines the blocks above into the full encoder-bottleneck-decoder architecture
 class ResidualUNet(nn.Module):
-    def __init__(self, in_channels, out_channels, features=[32, 64, 128, 256]):
+    def __init__(self, in_channels, out_channels, features=[16, 32, 64, 128, 256]):
         super().__init__()
         self.encoder = nn.ModuleList()
         self.decoder = nn.ModuleList()
@@ -90,7 +90,7 @@ class ResidualUNet(nn.Module):
             in_ch = skip_ch + out_ch  # input to UpBlock = skip + upsampled decoder
             self.decoder.append(UpBlock(in_ch, out_ch))
 
-        # Final output layer: 1x1 conv with zero initialization and no activation (for stability)
+        # Final output layer: 1x1 conv with no activation (for stability)
         self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1)
 
     def forward(self, x):
