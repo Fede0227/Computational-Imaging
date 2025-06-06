@@ -1,0 +1,106 @@
+\documentclass{beamer}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[dvipsnames]{xcolor}
+\usepackage[italian]{babel}
+\usepackage{ragged2e}
+\usepackage{hyphenat}
+\usepackage{biblatex}
+\addbibresource{bib.bib}
+
+\mode<presentation>{
+  \usetheme{Frankfurt}
+  \setbeamertemplate{headline}{
+  \leavevmode%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=0.8pt]{frametitle right} % puoi usare anche un colore personalizzato qui
+  \end{beamercolorbox}
+}
+
+%  Here is a gallery with other themes:
+%  http://deic.uab.es/~iblanes/beamer_gallery/
+  \usecolortheme[named=PineGreen]{structure}
+\useoutertheme[footline=authortitle,subsection=false]{miniframes}
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.65\paperwidth,ht=2.5ex,dp=1ex,center]{author in head/foot}%
+      \usebeamerfont{author in head/foot}\insertshortauthor
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.1\paperwidth,ht=2.5ex,dp=1ex,center]{frame number in head/foot}%
+      \insertframenumber{} / \inserttotalframenumber
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.25\paperwidth,ht=2.5ex,dp=1ex,center]{title in head/foot}%
+      \usebeamerfont{title in head/foot}\insertshorttitle
+    \end{beamercolorbox}%
+  }
+  \vskip0pt%
+}
+ 	\setbeamercovered{transparent}
+	\setbeamercolor{block title example}{fg=white,bg=Blue}
+	\setbeamercolor{block body example}{fg=black,bg=Blue!10}
+	\setbeamercolor{postit}{fg=black,bg=OliveGreen!20}
+	\setbeamercolor{postit2}{fg=yellow,bg=OliveGreen}
+%    \setbeamercolor{NEW_STYLE_NAME}{fg=COLOR_FOREGROUNG,bg=COLOR_BACKGROUNG}
+}
+
+\title[Computational Imaging]{Meteorological Super-Resolution\\vs\\Wind Representations}
+\author[Gruppo 21 - Marzia De Maina, Matteo Galiazzo, Federica Santisi]
+{Gruppo 21\\Marzia De Maina, Matteo Galiazzo, Federica Santisi}
+\institute[Alma Mater Studiorum - Università di Bologna]
+{
+  \textit{Alma Mater Studiorum - Università di Bologna}\\[0.25Cm]
+  \textit{Dipartimento di Informatica - Scienza e Ingegneria (DISI)} \\[0.5Cm]
+  Prof. \textbf{Fabio Merizzi}\\
+  }
+\date{}
+\begin{document}
+\begin{frame}
+    \titlepage
+    
+\end{frame}
+
+\begin{frame}{Purpose}
+\begin{center}
+\justifying
+The purpose of the project is to study the impact of different wind representations in the context of super-resolution.
+\end{center}
+\end{frame}
+% COSE DA AGGIUNGERE PER ROSICCHIARE TEMPO
+% CONFIFGURAZIONE DELL'AMBIENTE, DOVE ABBIAMO FATTO IL TRAINING E COME ABBIAMO GESTITO IL TUTTO
+
+% MARZIA
+\begin{frame}{Problem explaination and theory recap}
+\cite{merizzi}
+% riprendere la consegna ricordando che consegna avevamo, cosa era richiesto e fare una panoramica sulla teoria necessaria (unet)
+\end{frame}
+
+% FEDE
+\begin{frame}{Datasets and Preprocessing}
+% parlare dei 2 dataset (all'inizio erano 3) + come li abbiamo gestiti (preprocessing + abbiamo ritagliato per salvare risorse + minmax normalizzatione)
+\end{frame}
+
+% MATTEO
+\begin{frame}{Model and hyperparameters}
+% spiegare che modello abbiamo usato (upconv vs bilinear upsampling) + come abbiamo scelto la loss + come abbiamo scelto gli iperparametri
+\end{frame}
+
+% MATTEO
+\begin{frame}{Training}
+% training falliti + poi come ce la siamo cavata
+\end{frame}
+
+% FEDE
+\begin{frame}{Results}
+% mostrare i risultati finali per entrambi + un commento sulla differenza tra training locale con 100 immagini e training su colab con 1000
+\end{frame}
+
+% MARZIA
+\begin{frame}{Final Considerations}
+% come ci aspettavamo la rappresentazione con vettori e' quella migliore e quella con intensita' e direzione fa schifo al cazzo
+\end{frame}
+
+\begin{frame}
+    \frametitle{References}
+    \printbibliography
+\end{frame}
+\end{document}
