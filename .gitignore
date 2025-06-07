@@ -1,7 +1,10 @@
 *.nc
 *.csv
 *.pt
-*.png
+models/
+old_models/
+datasets/
+runs/
 *.pth
 .DS_Store
 __pycache__/

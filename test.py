@@ -10,21 +10,30 @@ from torch.nn import MSELoss
 import time
 from model import ResidualUNet
 from helpers import L1SSIMLoss, compute_ssim_for_batch
+import random
+
+def fix_random(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+fix_random(seed=1337)
 
 device = "cpu"
 if torch.cuda.is_available(): device = torch.device("cuda:0")
 if torch.mps.is_available(): device = torch.device("mps")
 
-DATASET_PATH = "datasets/normalized_minmax/"
+DATASET_PATH = "datasets/normalized_minmax_vectors/"
 BATCH_SIZE = 4
-NUM_SAMPLES = 4
+NUM_SAMPLES = 3
 NUM_CHANNELS = 2
 SSIM_DATA_RANGE = 1.0
-# MODEL_PATH = "old_models/unet_L1SSIM_loss_300_epochs_8_batch_1em3_lr_1em5_weightdecay_best.pt"
-MODEL_PATH = "models/unet_L1SSIM_loss_300_epochs_8_batch_1em3_lr_1em5_weightdecay_best.pt"
+MODEL_PATH = "models/FINAL_unet_vectors_mse_loss_200_epochs_4_batch_1em3_lr_1em5_weightdecay_best.pt"
 
-# test_data = torch.load(DATASET_PATH + "normalized_test_data.pt")
-test_data = torch.load("datasets/test_data.pt")
+test_data = torch.load(DATASET_PATH + "normalized_test_data.pt")
 test_dataset = TensorDataset(test_data["era5"], test_data["vhr"])
 print(f"Loaded TensorDataset test with {len(test_dataset)} samples.")
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
@@ -35,8 +44,6 @@ criterion.to(device)
 
 model = ResidualUNet(in_channels=2, out_channels=2)
 model.to(device)
-
-# state_dict = torch.load("models/unet_sr_best_MSE.pt", map_location=torch.device('mps'))
 
 state_dict = torch.load(MODEL_PATH, map_location=torch.device('mps'))
 model.load_state_dict(state_dict)

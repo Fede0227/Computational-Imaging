@@ -185,7 +185,7 @@ class SSIMLoss(SSIM):
         return 1.0 - super(SSIMLoss, self).forward(img1, img2)
 
 class L1SSIMLoss(nn.Module):
-    def __init__(self, alpha=0.84, ssim_window_size=11, ssim_data_range=1.0, ssim_channel=1):
+    def __init__(self, alpha=0.85, ssim_window_size=11, ssim_data_range=1.0, ssim_channel=1):
         """
         Combined L1 and SSIM Loss.
         Loss = alpha * (1-SSIM) + (1-alpha) * L1

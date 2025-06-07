@@ -37,17 +37,17 @@ if COORDINATES:
     COORDINATES_TYPE = "direction"
 
 MODEL_PATH = "models/"
-EPOCHS = 300
+EPOCHS = 200
 BATCH_SIZE = 4
 NUM_CHANNELS = 2
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-5
 SSIM_DATA_RANGE = 1.0
 
-LOSS = "l1ssim"
+LOSS = "mse"
 if LOSS == "mse": criterion = MSELoss()
 if LOSS == "msessim": criterion = MSESSIMLoss()
-else: criterion = L1SSIMLoss()
+if LOSS == "l1ssim": criterion = L1SSIMLoss()
 criterion.to(device)
 
 MODEL_NAME = f"unet_{COORDINATES_TYPE}_{LOSS}_loss_{EPOCHS}_epochs_{BATCH_SIZE}_batch_1em3_lr_1em5_weightdecay"
@@ -68,7 +68,6 @@ model = ResidualUNet(in_channels=NUM_CHANNELS, out_channels=NUM_CHANNELS)
 model.to(device)
 
 print("-"*50)
-# print(model)
 total_params = sum(p.numel() for p in model.parameters())
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print(f"Total parameters: {total_params}")
