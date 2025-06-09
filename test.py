@@ -32,14 +32,15 @@ NUM_SAMPLES = 3
 NUM_CHANNELS = 2
 SSIM_DATA_RANGE = 1.0
 MODEL_PATH = "models/FINAL_unet_vectors_mse_loss_200_epochs_4_batch_1em3_lr_1em5_weightdecay_best.pt"
+# MODEL_PATH = "models/FINAL_unet_vectors_l1ssim_loss_200_epochs_4_batch_1em3_lr_1em5_weightdecay_best.pt"
 
 test_data = torch.load(DATASET_PATH + "normalized_test_data.pt")
 test_dataset = TensorDataset(test_data["era5"], test_data["vhr"])
 print(f"Loaded TensorDataset test with {len(test_dataset)} samples.")
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
 
-# criterion = MSELoss()
-criterion = L1SSIMLoss()
+criterion = MSELoss()
+# criterion = L1SSIMLoss()
 criterion.to(device)
 
 model = ResidualUNet(in_channels=2, out_channels=2)
@@ -72,7 +73,7 @@ if num_batches_test > 0:
     avg_test_loss = test_loss_sum / num_batches_test
     avg_test_ssim = test_ssim_sum / num_batches_test
     print(f"Test completed in {time.time() - start_time:.2f}s")
-    print(f"Test loss: {avg_test_loss:.4f}, Test SSIM (metric): {avg_test_ssim:.4f}")
+    print(f"Test loss: {avg_test_loss:.5f}, Test SSIM (metric): {avg_test_ssim:.5f}")
 else:
     print("Test dataloader is empty.")
 

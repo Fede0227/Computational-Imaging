@@ -94,9 +94,13 @@ The purpose of the project is to study the impact of different wind representati
 % parlare del datset di train locale piccolo da 100 esempi per esperimenti e quello su colab da 1000 esempi per training effettivo
 \end{frame}
 
-% MATTEO
+% --- MATTEO ---
 % spiegare che modello abbiamo usato (upconv vs bilinear upsampling) + come abbiamo scelto la loss + come abbiamo scelto gli iperparametri
-\begin{frame}{Model and hyperparameters}
+% [x] panoramica generale sul modello
+% [x] upconv vs bilinear upsampling
+% [x] loss
+% [x] iperparametri (tabella)
+\begin{frame}{Model and hyperparameters - Introduction}
     Our model is based on the U-Net architecture, extended with residual connections for better gradient flow and stability.
     The input has 2 channels $(u,v)$ and the output also has the same 2 channels representing the high-resolution version of the same fields.
 
@@ -118,7 +122,23 @@ The purpose of the project is to study the impact of different wind representati
     \includegraphics[width=0.45\textwidth]{images/unet_experiment_graph.png}
 \end{frame}
 
-\begin{frame}{Model and hyperparameters}
+\begin{frame}{Model and hyperparameters - Transposed vs Bilinear}
+    \begin{table}[h]
+        \centering
+        \begin{tabular}{|l|l|l|l|l|}
+        \hline
+        \textbf{Network Type} & \textbf{Parameters Count} & \textbf{Training Time} & \textbf{Test Loss} & \textbf{Test SSIM} \\
+        \hline
+        Transposed Conv & 13,041,922 (13.0 M) & 54:03 16.22s/it & 0.197755 & 0.709096 \\
+        Bilinear Interp & 3,607,586 (3.6 M) & 08:04 2.42s/it & 0.171656 & 0.749828 \\
+        \hline
+        \end{tabular}
+        \caption{Comparison of bilinear interpolation vs transposed convoltuion.}
+        \label{tab:network_comparison}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Model and hyperparameters - Loss}
     Even the best model couldn't get decent results with the suggested MSE loss, so we adopted a combined loss approach
     \begin{columns}
         \column{0.5\textwidth}
@@ -132,7 +152,7 @@ The purpose of the project is to study the impact of different wind representati
     \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{Model and hyperparameters}
+\begin{frame}[fragile]{Model and hyperparameters - Loss}
     \begin{lstlisting}
     class L1SSIMLoss(nn.Module):
     def __init__(self, alpha=0.85, ssim_window_size=11, ssim_data_range=1.0, ssim_channel=1):
@@ -150,13 +170,44 @@ The purpose of the project is to study the impact of different wind representati
     \end{lstlisting}
 \end{frame}
 
-\begin{frame}{Model and hyperparameters}
-    % SCELTA DEGLI IPERPARAMETRI CON TABELLA TRAINING
+\begin{frame}{Model and hyperparameters - Hyperparameters}
+    \begin{table}[ht]
+        \centering
+        \small
+        \scriptsize
+        \begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+        \hline
+        \textbf{Channels} & \textbf{Epochs} & \textbf{Loss} & \textbf{Batch Size} & \textbf{LR} & \textbf{LR Scheduler} & \textbf{Weight Decay} & \textbf{Test Loss} & \textbf{Test SSIM} \\
+        \hline
+        {[}32, 64, 128{]} & 200 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & 0.19090 & 0.71990 \\
+        {[}16, 32, 64, 128{]} & 200 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & 0.17700 & 0.74170 \\
+        {[}16, 32, 64, 128, 256{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & \textbf{0.16768} & \textbf{0.75555} \\
+        {[}16, 32, 64, 128, 256{]} & 300 & MSE + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & \underline{0.15464} & \underline{0.75391} \\
+        {[}16, 32, 64, 128, 256{]} & 300 & MSE & 8 & 1.00E-03 & NO & 1.00E-05 & 0.39491 & 0.52290 \\
+        {[}16, 32, 64, 128, 256, 512{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & 0.19207 & 0.71774 \\
+        {[}16, 32, 64, 128, 256, 512{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & YES & 1.00E-05 & 0.19207 & 0.71774 \\
+        \hline
+        \end{tabular}
+        \caption{Performance comparison of different network configurations. Best and runner-up models are highlighted in bold and underline, respectively.}
+    \end{table}
 \end{frame}
 
-% MATTEO
+% --- MATTEO ---
+% [x] curve di training
 \begin{frame}{Training}
-% training falliti + poi come ce la siamo cavata
+    % training falliti + poi come ce la siamo cavata
+    Training curves for the best model (loss and SSIM):
+    \vspace{2em}
+    \begin{columns}
+        \column{0.5\textwidth}
+            \includegraphics[width=\linewidth]{images/loss_curve.png}
+            \newline
+            \centering \small Loss curve 
+        \column{0.5\textwidth}
+            \includegraphics[width=\linewidth]{images/ssim_curve.png}
+            \newline
+            \centering \small SSIM curve
+    \end{columns}
 \end{frame}
 
 % FEDE
