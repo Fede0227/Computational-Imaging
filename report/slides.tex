@@ -4,9 +4,12 @@
 \usepackage[italian]{babel}
 \usepackage{ragged2e}
 \usepackage{hyphenat}
+\usepackage{siunitx}
 
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{wrapfig}
+
 
 \lstset{
   language=Python,
@@ -57,7 +60,7 @@
 %    \setbeamercolor{NEW_STYLE_NAME}{fg=COLOR_FOREGROUNG,bg=COLOR_BACKGROUNG}
 }
 
-\title[Computational Imaging]{Meteorological Super-Resolution\\vs\\Wind Representations}
+\title[Computational Imaging]{Meteorological Super-Resolution\\vzzs\\Wind Representations}
 \author[Gruppo 21 - Marzia De Maina, Matteo Galiazzo, Federica Santisi]
 {Gruppo 21\\Marzia De Maina, Matteo Galiazzo, Federica Santisi}
 \institute[Alma Mater Studiorum - Università di Bologna]
@@ -68,7 +71,7 @@
   }
 \date{}
 \begin{document}
-\begin{frame}
+\begin{frame}[fragile]
     \titlepage
     
 \end{frame}
@@ -93,6 +96,179 @@ The purpose of the project is to study the impact of different wind representati
 % parlare dei 2 dataset (all'inizio erano 3) + come li abbiamo gestiti (preprocessing + abbiamo ritagliato per salvare risorse + minmax normalizzatione)
 % parlare del datset di train locale piccolo da 100 esempi per esperimenti e quello su colab da 1000 esempi per training effettivo
 \end{frame}
+
+\begin{frame}{Datasets and Preprocessing}
+    For the purpose of this project, the wind field representations are derived from the ERA5 and VHR--REA datasets.
+    \vspace{1em}
+        \begin{itemize}
+            \item \textbf{ERA5} is a global reanalysis dataset developed by ECMWF, providing hourly data since 1950 at a 0.25° (\textasciitilde31 km) resolution.
+            \item \textbf{VHR--REA} is a downscaled regional reanalysis for Italy based on the COSMO model, with a resolution of 2.2 km.
+        \end{itemize}
+    \vspace{1em}
+    Both datasets are aligned temporally (06, 12, 18, 00 UTC) and spatially through reprojection. \\
+    \vspace{1em}
+    ERA5 acts as the low-resolution input; VHR--REA is used as the high-resolution target for training.
+\end{frame}
+
+\begin{frame}{Datasets and Preprocessing}
+    \begin{columns}
+        \begin{column}{0.65\textwidth}
+            \begin{itemize}
+                \item \textbf{ERA5} is the fifth-generation global reanalysis dataset produced by ECMWF under the Copernicus Climate Change Service (C3S). 
+                It replaces the previous ERA-Interim product, offering higher accuracy, finer temporal and spatial resolution (0.25°), and consistent uncertainty estimates.
+
+                \vspace{0.8em}
+            
+                \item Based on a 4D-Var data assimilation scheme, ERA5 integrates a vast range of observational data, including satellite, radiosonde, buoy, and aircraft measurements. 
+                It covers the atmosphere, land surface, and ocean waves with hourly updates and is widely used for climate studies, energy forecasting, and risk assessment.
+
+                \vspace{0.8em}
+
+                \item In this project, we focus on the surface wind fields, specifically the \texttt{u10} and \texttt{v10} components, which serve as low-resolution inputs for the super-resolution model.
+            \end{itemize}
+        \end{column}
+
+        \begin{column}{0.35\textwidth}
+            \centering
+            \includegraphics[width=\linewidth]{images/overview-detail_67e6d1d5ac470ee33ae510a76a2fe3c1c67a7f1fdd4c040a333969fe0b11f76f.png}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Dataset and Preprocessing}
+
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\textbf{Spatial Alignment \& Patch Extraction}
+\begin{itemize}
+    \item Center crop to 224×224 pixel patches
+    \item Temporal synchronization verification
+    \item Channel-wise data stacking (u10, v10 components)
+    \item Custom PyTorch Dataset implementation
+\end{itemize}
+
+\vspace{0.4cm}
+
+\textbf{Data Pipeline Architecture}
+\begin{itemize}
+    \item ItalyWeatherDataset class for paired data loading
+    \item Automatic temporal alignment checking
+    \item Flexible normalizer integration
+    \item Memory-efficient batch processing
+\end{itemize}
+
+\vspace{0.4cm}
+
+\textbf{Quality Assurance}
+\begin{itemize}
+    \item Index bounds verification
+    \item Consistent tensor dimensions
+    \item Error handling for misaligned datasets
+\end{itemize}
+\end{column}
+
+\begin{column}{0.4\textwidth}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\tiny]
+def extract_region(self, data_tensor):
+    patch_h, patch_w = (224, 224)
+    _, h, w = data_tensor.shape
+    x = (w - patch_w) // 2
+    y = (h - patch_h) // 2
+    return data_tensor[:, 
+                      y:y+patch_h, 
+                      x:x+patch_w]
+
+def __getitem__(self, idx):
+    # Process ERA5 data
+    era_sample_slice = self.era5_dataset.isel(
+        valid_time=idx)
+    era_data_arrays = [
+        era_sample_slice[var].values 
+        for var in self.ERA5_VARIABLES
+    ]
+    era_stacked = np.stack(era_data_arrays, axis=0)
+    era_tensor = torch.from_numpy(era_stacked).float()
+    era_tensor = self.extract_region(era_tensor)
+    
+    # Apply normalization if available
+    if self.era5_normalizer is not None: 
+        era_tensor = self.era5_normalizer.normalize(era_tensor)
+\end{lstlisting}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Normalization \& Coordinate Transformation}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{MinMax Normalization Strategy}
+\begin{itemize}
+    \item Training-based statistics computation
+    \item Per-channel normalization across spatial dimensions
+    \item Feature range scaling to [0, 1]
+    \item Epsilon handling for division-by-zero cases
+    \item Serializable normalizer objects
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Coordinate System Transformation}
+\begin{itemize}
+    \item \textbf{Option 1}: Cartesian coordinates (u, v)
+    \item \textbf{Option 2}: Polar coordinates (magnitude, direction)
+    \item $magnitude = \sqrt{u^2 + v^2}$
+    \item $direction = 180° + \frac{180°}{\pi} \arctan2(-u, -v) \bmod 360°$
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Dataset Management}
+\begin{itemize}
+    \item 80-20 train-test split with fixed seed (42)
+    \item Separate normalization preservation
+    \item Batch processing with memory optimization
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\tiny]
+class MinMaxNormalizer:
+    def compute_stats(self, data_tensor):
+        # Min/max per channel across (N,H,W) dims
+        self.min_val = data_tensor.amin(
+            dim=(0, 2, 3), keepdim=True)
+        self.max_val = data_tensor.amax(
+            dim=(0, 2, 3), keepdim=True)
+        
+        # Handle division by zero
+        diff = self.max_val - self.min_val
+        epsilon = 1e-7
+        self.max_val[diff < epsilon] = \
+            self.min_val[diff < epsilon] + epsilon
+        
+    def normalize(self, x):
+        return (x - self.min_val) / \
+               (self.max_val - self.min_val)
+
+# Coordinate transformation to polar
+if COORDINATES == "1":
+    u_squared = tensor[0, :, :]**2
+    v_squared = tensor[1, :, :]**2
+    magnitude = torch.sqrt(u_squared + v_squared)
+    direction = (180 + (180/math.pi) * 
+                torch.atan2(-u_squared, -v_squared)) % 360
+    tensor = torch.stack([magnitude, direction], axis=0)
+\end{lstlisting}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
 
 % --- MATTEO ---
 % spiegare che modello abbiamo usato (upconv vs bilinear upsampling) + come abbiamo scelto la loss + come abbiamo scelto gli iperparametri
