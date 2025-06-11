@@ -26,21 +26,21 @@ device = "cpu"
 if torch.cuda.is_available(): device = torch.device("cuda:0")
 if torch.mps.is_available(): device = torch.device("mps")
 
-DATASET_PATH = "datasets/normalized_minmax_vectors/"
+DATASET_PATH = "datasets/"
 BATCH_SIZE = 4
 NUM_SAMPLES = 3
 NUM_CHANNELS = 2
 SSIM_DATA_RANGE = 1.0
-MODEL_PATH = "models/FINAL_unet_vectors_mse_loss_200_epochs_4_batch_1em3_lr_1em5_weightdecay_best.pt"
-# MODEL_PATH = "models/FINAL_unet_vectors_l1ssim_loss_200_epochs_4_batch_1em3_lr_1em5_weightdecay_best.pt"
+# MODEL_PATH = "models/colab_vector_unet_L1SSIM_loss_300_epochs_8_batch_1em3_lr_1em5_weightdecay_best.pt"
+MODEL_PATH = "models/FINAL_COLAB_unet_vectors_L1SSIM_loss_300_epochs_4_batch_1em3_lr_1em5_weightdecay_best.pt"
 
-test_data = torch.load(DATASET_PATH + "normalized_test_data.pt")
+test_data = torch.load(DATASET_PATH + "vector_test_data.pt")
 test_dataset = TensorDataset(test_data["era5"], test_data["vhr"])
 print(f"Loaded TensorDataset test with {len(test_dataset)} samples.")
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
 
-criterion = MSELoss()
-# criterion = L1SSIMLoss()
+# criterion = MSELoss()
+criterion = L1SSIMLoss()
 criterion.to(device)
 
 model = ResidualUNet(in_channels=2, out_channels=2)
@@ -77,11 +77,8 @@ if num_batches_test > 0:
 else:
     print("Test dataloader is empty.")
 
-
-
 dataiter = iter(test_dataloader)
 x_batch, y_batch = next(dataiter)
-
 
 x_samples = x_batch[:NUM_SAMPLES].to(device)
 y_samples = y_batch[:NUM_SAMPLES].cpu()
@@ -100,6 +97,10 @@ for i in range(NUM_SAMPLES):
     target_mag = torch.sqrt(y_samples[i, 0, :, :]**2 + y_samples[i, 1, :, :]**2).numpy()
     pred_mag = torch.sqrt(predictions[i, 0, :, :]**2 + predictions[i, 1, :, :]**2).numpy()
     
+    # input_mag = (x_batch[i, 0, :, :]).numpy()
+    # target_mag = (y_samples[i, 0, :, :]).numpy()
+    # pred_mag = (predictions[i, 0, :, :]).numpy()
+    
     # Plot input (low resolution)
     axes[i, 0].imshow(input_mag, cmap='viridis')
     axes[i, 0].set_title('Low Resolution Input')
@@ -117,4 +118,5 @@ for i in range(NUM_SAMPLES):
 
 plt.tight_layout()
 plt.savefig(MODEL_PATH + ".png")
+print(f"saved {MODEL_PATH}.png")
 plt.show()

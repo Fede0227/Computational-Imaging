@@ -309,11 +309,11 @@ if COORDINATES == "1":
         \item \textbf{Downsampling Block}: reduces the spatial resolution and increases the feature size. It uses stride 2 to downsample and includes a residual block.
         \item \textbf{Upsampling Block}: these are the mirror of down blocks. They use bilinear upsampling to increase the spatial dimension instead of transposed convolutions. Then, we concatenate  the skip connections from the encoder and use a $1\times 1$ convolution to reduce the number of channels after concatenations.
     \end{itemize}
-    \end{frame}
+\end{frame}
 
-    \begin{frame}{Model and hyperparameters}
-    \centering
-    \includegraphics[width=0.45\textwidth]{images/unet_experiment_graph.png}
+\begin{frame}[fragile]{Model and hyperparameters - ResUNet}
+    \center
+    \includegraphics[angle=270, width=0.95\textwidth]{images/unet_experiment_graph.png}
 \end{frame}
 
 \begin{frame}{Model and hyperparameters - Transposed vs Bilinear}
@@ -347,8 +347,8 @@ if COORDINATES == "1":
 \end{frame}
 
 \begin{frame}[fragile]{Model and hyperparameters - Loss}
-    \begin{lstlisting}
-    class L1SSIMLoss(nn.Module):
+    \begin{lstlisting}[language=python]
+class L1SSIMLoss(nn.Module):
     def __init__(self, alpha=0.85, ssim_window_size=11, ssim_data_range=1.0, ssim_channel=1):
         super(L1SSIMLoss, self).__init__()
         self.alpha = alpha
@@ -382,25 +382,59 @@ if COORDINATES == "1":
         {[}16, 32, 64, 128, 256, 512{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & YES & 1.00E-05 & 0.19207 & 0.71774 \\
         \hline
         \end{tabular}
-        \caption{Performance comparison of different network configurations. Best and runner-up models are highlighted in bold and underline, respectively.}
+        \caption{Performance comparison of different network configurations on the local datasets. Best and runner-up models are highlighted in bold and underline, respectively.}
     \end{table}
 \end{frame}
 
 % --- MATTEO ---
 % [x] curve di training
-\begin{frame}{Training}
-    % training falliti + poi come ce la siamo cavata
-    Training curves for the best model (loss and SSIM):
-    \vspace{2em}
+\begin{frame}[fragile]{Local Training - Loss and SSIM curves}
+    Training curves for the best model on local data (loss and SSIM):
+    \newline
+    \includegraphics[width=0.7\linewidth]{images/local_loss_curve.png}
+    \newline
+    \small Loss curve 
+    \newline
+    \includegraphics[width=0.7\linewidth]{images/local_ssim_curve.png}
+    \newline
+    \small SSIM curve 
+\end{frame}
+
+\begin{frame}{Colab Training - Difference with Local data}
     \begin{columns}
         \column{0.5\textwidth}
-            \includegraphics[width=\linewidth]{images/loss_curve.png}
+            \includegraphics[width=\linewidth]{images/colab_vector_unet_L1SSIM_loss_300_epochs_8_batch_1em3_lr_1em5_weightdecay_best.pt.png}
             \newline
-            \centering \small Loss curve 
+            \centering \small Colab data. SSIM: \texttt{0.84483}
         \column{0.5\textwidth}
-            \includegraphics[width=\linewidth]{images/ssim_curve.png}
+            \includegraphics[width=\linewidth]{images/unet_vectors_l1ssim_loss_200_epochs_4_batch_1em3_lr_1em5_weightdecay.png}
             \newline
-            \centering \small SSIM curve
+            \centering \small Local data. SSIM: \texttt{0.7556}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Colab Training - Loss and SSIM curves}
+    Training curves for the best model on colab data (loss and SSIM):
+    \newline
+    \includegraphics[width=0.7\linewidth]{images/colab_loss_curve.png}
+    \newline
+    \small Loss curve 
+    \newline
+    \includegraphics[width=0.7\linewidth]{images/colab_ssim_curve.png}
+    \newline
+    \small SSIM curve 
+\end{frame}
+
+\begin{frame}{Colab Training - Vectorial data vs Directional data}
+    \begin{columns}
+        \column{0.5\textwidth}
+            \includegraphics[width=\linewidth]{images/colab_vector_unet_L1SSIM_loss_300_epochs_8_batch_1em3_lr_1em5_weightdecay_best.pt.png}
+            \newline
+            \centering \small Vector data. SSIM: \texttt{0.84483}
+        \column{0.5\textwidth}
+            \includegraphics[width=\linewidth]{images/colab_direction_unet_L1SSIM_loss_150_epochs_4_batch_1em3_lr_1em5_weightdecay_best.pt.png}
+            \newline
+            \centering \small Direction data. SSIM: \texttt{0.48154}
     \end{columns}
 \end{frame}
 
