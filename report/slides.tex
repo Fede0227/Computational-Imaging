@@ -72,6 +72,7 @@
 
 \begin{frame}{Purpose}
   \begin{itemize}
+  \justifying
     \item \textbf{Objective:} Evaluate the impact of different wind representations on neural-based super-resolution for meteorological fields.
     \item Compare two wind encodings:
       \begin{itemize}
@@ -88,20 +89,17 @@
 % MARZIA
 % Wind Field Representations
 \begin{frame}{Wind Field Representations}
-  \begin{columns}
-    \column{0.47\textwidth}
       \textbf{Cartesian Components}\
       \begin{itemize}
         \item $u_{10}, v_{10}$: zonal and meridional wind at 10m height
         \item Directly match ERA5 outputs
       \end{itemize}
-    \column{0.53\textwidth}
+      \vspace{0.5cm}
       \textbf{Polar Encoding}\
       \begin{itemize}
         \item $\text{speed}=\sqrt{u_{10}^2 + v_{10}^2}$
         \item $\text{direction}=(180 + \frac{180}{\pi}\arctan2(-u_{10}, -v_{10}))\bmod360$
       \end{itemize}
-  \end{columns}
   \vspace{1cm}
   \textbf{Motivation:} Representation may affect neural network learning and reconstruction quality. \cite{merizzi}
 \end{frame}
@@ -132,6 +130,7 @@
     For the purpose of this project, the wind field representations are derived from the ERA5 and VHR--REA datasets.
     \vspace{1em}
         \begin{itemize}
+        \justifying
             \item \textbf{ERA5} is a global reanalysis dataset developed by ECMWF, providing hourly data since 1950 at a 0.25° (\textasciitilde31 km) resolution.
             \item \textbf{VHR--REA} is a downscaled regional reanalysis for Italy based on the COSMO model, with a resolution of 2.2 km.
         \end{itemize}
@@ -146,6 +145,7 @@
     \begin{columns}
         \begin{column}{0.65\textwidth}
             \begin{itemize}
+            \justifying
                 \item \textbf{ERA5} is the fifth-generation global reanalysis dataset produced by ECMWF under the Copernicus Climate Change Service (C3S). 
                 It replaces the previous ERA-Interim product, offering higher accuracy, finer temporal and spatial resolution (0.25°), and consistent uncertainty estimates.
 
@@ -169,6 +169,7 @@
 \end{frame}
 
 \begin{frame}{Datasets and Preprocessing}
+\justifying
     \begin{wrapfigure}{r}{0.4\textwidth}
         \centering
         \includegraphics[width=0.38\textwidth]{images/data-06-00088-g001-550.jpg}
@@ -246,6 +247,7 @@ def __getitem__(self, idx):
 
 \begin{frame}[fragile]
 \frametitle{Normalization \& Coordinate Transformation}
+
 \tiny
 \begin{columns}
 \begin{column}{0.4\textwidth}
@@ -321,14 +323,15 @@ if COORDINATES == "1":
 % [x] loss
 % [x] iperparametri (tabella)
 \begin{frame}{Model and hyperparameters - Introduction}
+\justifying
 \footnotesize
     Our model is based on the U-Net architecture, extended with residual connections for better gradient flow and stability.
     The input has 2 channels $(u,v)$ and the output also has the same 2 channels representing the high-resolution version of the same fields.
 
     The key building blocks are:
     \begin{itemize}
-        \item \textbf{Residual Block}: it's the core module of the architecture. It has two paths
-        \begin{itemize}
+    \justifying
+        \item \textbf{Residual Block}: it's the core module of the architecture. It has two paths:\begin{itemize}
             \item One that applies convolutions and normalization.
             \item One that does nothing (the residual application).
         \end{itemize}
@@ -473,21 +476,14 @@ if COORDINATES == "1":
 \end{frame}
 
 % MARZIA
+% Section 7: Final Considerations
+\section{Final Considerations}
 \begin{frame}{Final Considerations}
-  \begin{itemize}
-    \item Expectation: One representation may yield lower MSE and better visual fidelity.
-    \item Trade-offs:
-      \begin{itemize}
-        \item Cartesian: linear inputs, but directional discontinuities.
-        \item Polar: continuous angular information, but non-linear mapping.
-      \end{itemize}
-    \item Implications: Guidance for future climate data downscaling pipelines.
-    \item Next steps:
-      \begin{itemize}
-        \item Extend to multilevel atmospheric variables.
-        \item Evaluate on different regions and seasons.
-      \end{itemize}
-  \end{itemize}
+\justifying
+    \textbf{Societal Impact}
+    \\More accurate high-resolution forecasts support agriculture management, disaster preparedness, and climate resilience, benefiting communities and policymakers. \\\vspace{1cm}
+    \textbf{Next steps}
+    \\Further investigate specific regions for each season.
 \end{frame}
 % come ci aspettavamo la rappresentazione con vettori e' quella migliore e quella con intensita' e direzione fa schifo al cazzo
 
