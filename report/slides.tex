@@ -335,10 +335,10 @@ if COORDINATES == "1":
 % [x] loss
 % [x] iperparametri (tabella)
 
-\begin{frame}
+\begin{frame}{Model and hyperparameters - General differences}
     \begin{columns}
-        \begin{column}{0.55\textwidth}
-            \includegraphics[width=0.9\textwidth]{images/unet_experiment_graph.png}
+        \begin{column}{0.45\textwidth}
+            \includegraphics[width=0.6\textheight]{images/unet_experiment_graph.png}
         \end{column}
         \begin{column}{0.55\textwidth}
             Interesting points in our implementation:
@@ -414,7 +414,7 @@ class L1SSIMLoss(nn.Module):
         {[}16, 32, 64, 128{]} & 200 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & 0.17700 & 0.74170 \\
         {[}16, 32, 64, 128, 256{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & \textbf{0.16768} & \textbf{0.75555} \\
         {[}16, 32, 64, 128, 256{]} & 300 & MSE + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & \underline{0.15464} & \underline{0.75391} \\
-        {[}16, 32, 64, 128, 256{]} & 300 & MSE & 8 & 1.00E-03 & NO & 1.00E-05 & 0.39491 & 0.52290 \\
+        {[}16, 32, 64, 128, 256{]} & 300 & MSE & 8 & 1.00E-03 & NO & 1.00E-05 & 0.00327 & 0.70218 \\
         {[}16, 32, 64, 128, 256, 512{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & 0.19207 & 0.71774 \\
         {[}16, 32, 64, 128, 256, 512{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & YES & 1.00E-05 & 0.19207 & 0.71774 \\
         \hline
