@@ -22,6 +22,7 @@
 }
 
 \usepackage{biblatex}
+\nocite{*}
 \addbibresource{bib.bib}
 
 \mode<presentation>{
@@ -61,6 +62,7 @@
 {
   \textit{Alma Mater Studiorum - Università di Bologna}\\[0.25Cm]
   \textit{Dipartimento di Informatica - Scienza e Ingegneria (DISI)} \\[0.5Cm]
+  
   }
 \date{}
 \begin{document}
@@ -72,66 +74,77 @@
 \begin{frame}{Purpose}
   \begin{itemize}
   \justifying
-    \item \textbf{Objective:} Evaluate the impact of different wind representations on neural-based super-resolution for meteorological fields.
-    \item Compare two wind encodings:
+    \item[-] Evaluate the impact of \textbf{different wind representations} on neural-based super-resolution for meteorological fields.
+    \vspace{0.2cm}
+    \item[-] Compare two \textbf{wind encodings}:
       \begin{itemize}
-        \item Orthogonal components $u_{10},\,v_{10}$
-        \item Polar form: speed and direction (degrees from north)
+        \item[-] Orthogonal components $u_{10},\,v_{10}$
+        \item[-] Polar form: speed and direction (degrees from north)
       \end{itemize}
-    \item Use ERA5 (30 km) and VHR-REA (2.2 km) datasets for training and testing.
-    \item Assess which representation yields better performance (MSE) and qualitative reconstruction.
+    \vspace{0.2cm}
+    \item[-] Use \textbf{ERA5} (\textit{30 km}) and \textbf{VHR-REA} (\textit{2.2 km}) datasets for training and testing.
+    \vspace{0.2cm}
+    \item[-] Assess which representation yields better performance and qualitative reconstruction.
   \end{itemize}
 \end{frame}
-% COSE DA AGGIUNGERE PER ROSICCHIARE TEMPO
-% CONFIFGURAZIONE DELL'AMBIENTE, DOVE ABBIAMO FATTO IL TRAINING E COME ABBIAMO GESTITO IL TUTTO
 
 % MARZIA
 % Wind Field Representations
 \begin{frame}{Wind Field Representations}
       \textbf{Cartesian Components}\
       \begin{itemize}
-        \item $u_{10}, v_{10}$: zonal and meridional wind at 10m height
-        \item Directly match ERA5 outputs
+        \item[-] $u_{10}, v_{10}$: zonal and meridional wind at 10m height
+        \item[-] Directly match ERA5 outputs
       \end{itemize}
       \vspace{0.5cm}
       \textbf{Polar Encoding}\
       \begin{itemize}
-        \item $\text{speed}=\sqrt{u_{10}^2 + v_{10}^2}$
-        \item $\text{direction}=(180 + \frac{180}{\pi}\arctan2(-u_{10}, -v_{10}))\bmod360$
+        \item[-] $\text{speed}=\sqrt{u_{10}^2 + v_{10}^2}$
+        \item[-] $\text{direction}=(180 + \frac{180}{\pi}\arctan2(-u_{10}, -v_{10}))\bmod360$
       \end{itemize}
-  \vspace{1cm}
-  \textbf{Motivation:} Representation may affect neural network learning and reconstruction quality. \cite{merizzi}
+  \vspace{0.5cm}
+  \textbf{Motivation:} Representation may affect neural network learning and reconstruction quality.
 \end{frame}
 % riprendere la consegna ricordando che consegna avevamo, cosa era richiesto e fare una panoramica sulla teoria necessaria (unet)
 
-%%%%% Super-Resolution and U-Net Theory
-\begin{frame}{Super-Resolution and U-Net Theory}
-  \begin{itemize}
-    \item \textbf{Super-Resolution:} Upscaling low-resolution fields to high-resolution targets using deep learning. %\cite{SR_meteorology2024}.
-    \vspace{0.5cm}
-    \item \textbf{U-Net Architecture:} Encoder–decoder with skip connections for image-to-image tasks \cite{ronneberger2015u}.
+%%%%% Super-Resolution
+\begin{frame}{Super-Resolution}
+\textbf{Super-Resolution}\\\justifying
+Upscaling low-resolution fields to high-resolution targets using deep learning. This tecnique involves reconstructing high-resolution images from coarser data, with the aim of capturing finer and more complex atmospheric structures.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/img_superris.jpeg}
+    \caption{Super-resolution in the best case}
+    \label{fig:enter-label}
+\end{figure}
+\end{frame}
+
+%%%%% U-Net Theory
+\begin{frame}{U-Net}
+    \textbf{U-Net Architecture}\\Encoder–decoder with skip connections for image-to-image tasks.
       \begin{itemize}
-        \item Residual blocks to ease training.
-        \item Multiscale features preserved via concatenation.
+        \item[-] Residual blocks to ease training.
+        \item[-] Multiscale features preserved via concatenation.
       \end{itemize}
-      \vspace{0.5cm}
-    \item \textbf{Metrics:} Mean Squared Error (MSE) on test set.
-  \end{itemize}
+      \begin{figure}
+          \centering
+          \includegraphics[width=0.6\linewidth]{images/unet.jpg}
+          \caption{U-Net Standard Architecture}
+          \label{fig:enter-label}
+      \end{figure}
 \end{frame}
 
 % FEDE
-\begin{frame}{Datasets and Preprocessing}
 % parlare dei 2 dataset (all'inizio erano 3) + come li abbiamo gestiti (preprocessing + abbiamo ritagliato per salvare risorse + minmax normalizzatione)
 % parlare del datset di train locale piccolo da 100 esempi per esperimenti e quello su colab da 1000 esempi per training effettivo
-\end{frame}
 
 \begin{frame}{Datasets and Preprocessing}
     For the purpose of this project, the wind field representations are derived from the ERA5 and VHR--REA datasets.
     \vspace{1em}
         \begin{itemize}
         \justifying
-            \item \textbf{ERA5} is a global reanalysis dataset developed by ECMWF, providing hourly data since 1950 at a 0.25° (\textasciitilde31 km) resolution.
-            \item \textbf{VHR--REA} is a downscaled regional reanalysis for Italy based on the COSMO model, with a resolution of 2.2 km.
+            \item[-] \textbf{ERA5} is a global reanalysis dataset developed by ECMWF, providing hourly data since 1950 at a 0.25° (\textasciitilde31 km) resolution.
+            \item[-] \textbf{VHR--REA} is a downscaled regional reanalysis for Italy based on the COSMO model, with a resolution of 2.2 km.
         \end{itemize}
     \vspace{1em}
     Both datasets are aligned temporally (06, 12, 18, 00 UTC) and spatially through reprojection. \\
@@ -145,17 +158,17 @@
         \begin{column}{0.65\textwidth}
             \begin{itemize}
             \justifying
-                \item \textbf{ERA5} is the fifth-generation global reanalysis dataset produced by ECMWF under the Copernicus Climate Change Service (C3S). 
+                \item[-] \textbf{ERA5} is the fifth-generation global reanalysis dataset produced by ECMWF under the Copernicus Climate Change Service (C3S). 
                 It replaces the previous ERA-Interim product, offering higher accuracy, finer temporal and spatial resolution (0.25°), and consistent uncertainty estimates.
 
                 \vspace{0.8em}
             
-                \item Based on a 4D-Var data assimilation scheme, ERA5 integrates a vast range of observational data, including satellite, radiosonde, buoy, and aircraft measurements. 
+                \item[-] Based on a 4D-Var data assimilation scheme, ERA5 integrates a vast range of observational data, including satellite, radiosonde, buoy, and aircraft measurements. 
                 It covers the atmosphere, land surface, and ocean waves with hourly updates and is widely used for climate studies, energy forecasting, and risk assessment.
 
                 \vspace{0.8em}
 
-                \item In this project, we focus on the surface wind fields, specifically the \texttt{u10} and \texttt{v10} components, which serve as low-resolution inputs for the super-resolution model.
+                \item[-] In this project, we focus on the surface wind fields, specifically the \texttt{u10} and \texttt{v10} components, which serve as low-resolution inputs for the super-resolution model.
             \end{itemize}
         \end{column}
 
@@ -172,7 +185,7 @@
     \begin{wrapfigure}{r}{0.4\textwidth}
         \centering
         \includegraphics[width=0.38\textwidth]{images/data-06-00088-g001-550.jpg}
-        \caption*{\tiny VHR--REA spatial coverage over Northern Italy}
+        \caption{VHR--REA spatial coverage over Northern Italy}
     \end{wrapfigure}
     \scriptsize
     \textbf{VHR--REA (Very High Resolution ReAnalysis)} is a dataset produced by CMCC by dynamically downscaling ERA5 with the COSMO regional model. The dataset has ~2.2 km resolution, explicitly resolving convection processes important in complex terrain.
@@ -180,8 +193,8 @@
     This high-resolution data supports regional applications such as hydrological forecasting, renewable energy planning, and urban climatology.
 
     \begin{itemize}
-        \item Target resolution for training a super-resolution model.
-        \item Data span: one full year, 4 times daily over Northern Italy.
+        \item[-] Target resolution for training a super-resolution model.
+        \item[-] Data span: one full year, 4 times daily over Northern Italy.
     \end{itemize}
 \end{frame}
 
@@ -194,25 +207,25 @@
     \begin{column}{0.55\textwidth}
         \textbf{Spatial Alignment \& Patch Extraction}
         \begin{itemize}
-            \item Center crop to 224×224 pixel patches
-            \item Temporal synchronization verification
-            \item Channel-wise data stacking (u10, v10 components)
-            \item Custom PyTorch Dataset implementation
+            \item[-] Center crop to 224×224 pixel patches
+            \item[-] Temporal synchronization verification
+            \item[-] Channel-wise data stacking (u10, v10 components)
+            \item[-] Custom PyTorch Dataset implementation
         \end{itemize}
 
         \textbf{Data Pipeline Architecture}
         \begin{itemize}
-            \item ItalyWeatherDataset class for paired data loading
-            \item Automatic temporal alignment checking
-            \item Flexible normalizer integration
-            \item Memory-efficient batch processing
+            \item[-] ItalyWeatherDataset class for paired data loading
+            \item[-] Automatic temporal alignment checking
+            \item[-] Flexible normalizer integration
+            \item[-] Memory-efficient batch processing
         \end{itemize}
 
         \textbf{Quality Assurance}
         \begin{itemize}
-            \item Index bounds verification
-            \item Consistent tensor dimensions
-            \item Error handling for misaligned datasets
+            \item[-] Index bounds verification
+            \item[-] Consistent tensor dimensions
+            \item[-] Error handling for misaligned datasets
         \end{itemize}
     \end{column}
 
@@ -228,7 +241,7 @@ def extract_region(self, data_tensor):
                       y:y+patch_h, 
                       x:x+patch_w]
 
-def __getitem__(self, idx):
+def __getitem[-]__(self, idx):
     era_slice = self.era5_dataset.isel(valid_time=idx)
     era_arrays = [era_slice[v].values 
                   for v in self.ERA5_VARIABLES]
@@ -252,30 +265,30 @@ def __getitem__(self, idx):
 \begin{column}{0.4\textwidth}
 \textbf{MinMax Normalization Strategy}
 \begin{itemize}
-    \item Training-based statistics computation
-    \item Per-channel normalization across spatial dimensions
-    \item Feature range scaling to [0, 1]
-    \item Epsilon handling for division-by-zero cases
-    \item Serializable normalizer objects
+    \item[-] Training-based statistics computation
+    \item[-] Per-channel normalization across spatial dimensions
+    \item[-] Feature range scaling to [0, 1]
+    \item[-] Epsilon handling for division-by-zero cases
+    \item[-] Serializable normalizer objects
 \end{itemize}
 
 \vspace{0.3cm}
 
 \textbf{Coordinate System Transformation}
 \begin{itemize}
-    \item \textbf{Option 1}: Cartesian coordinates (u, v)
-    \item \textbf{Option 2}: Polar coordinates (magnitude, direction)
-    \item $magnitude = \sqrt{u^2 + v^2}$
-    \item $direction = 180° + \frac{180°}{\pi} \arctan2(-u, -v) \bmod 360°$
+    \item[-] \textbf{Option 1}: Cartesian coordinates (u, v)
+    \item[-] \textbf{Option 2}: Polar coordinates (magnitude, direction)
+    \item[-] $magnitude = \sqrt{u^2 + v^2}$
+    \item[-] $direction = 180° + \frac{180°}{\pi} \arctan2(-u, -v) \bmod 360°$
 \end{itemize}
 
 \vspace{0.3cm}
 
 \textbf{Dataset Management}
 \begin{itemize}
-    \item 80-20 train-test split with fixed seed (42)
-    \item Separate normalization preservation
-    \item Batch processing with memory optimization
+    \item[-] 80-20 train-test split with fixed seed (42)
+    \item[-] Separate normalization preservation
+    \item[-] Batch processing with memory optimization
 \end{itemize}
 \end{column}
 
@@ -330,13 +343,13 @@ if COORDINATES == "1":
     The key building blocks are:
     \begin{itemize}
     \justifying
-        \item \textbf{Residual Block}: it's the core module of the architecture. It has two paths:\begin{itemize}
-            \item One that applies convolutions and normalization.
-            \item One that does nothing (the residual application).
+        \item[-] \textbf{Residual Block}: it's the core module of the architecture. It has two paths:\begin{itemize}
+            \item[-] One that applies convolutions and normalization.
+            \item[-] One that does nothing (the residual application).
         \end{itemize}
         The model learns how much to use either path.
-        \item \textbf{Downsampling Block}: reduces the spatial resolution and increases the feature size. It uses stride 2 to downsample and includes a residual block.
-        \item \textbf{Upsampling Block}: these are the mirror of down blocks. They use bilinear upsampling to increase the spatial dimension instead of transposed convolutions. Then, we concatenate  the skip connections from the encoder and use a $1\times 1$ convolution to reduce the number of channels after concatenations.
+        \item[-] \textbf{Downsampling Block}: reduces the spatial resolution and increases the feature size. It uses stride 2 to downsample and includes a residual block.
+        \item[-] \textbf{Upsampling Block}: these are the mirror of down blocks. They use bilinear upsampling to increase the spatial dimension instead of transposed convolutions. Then, we concatenate  the skip connections from the encoder and use a $1\times 1$ convolution to reduce the number of channels after concatenations.
     \end{itemize}
     \end{frame}
 
@@ -469,9 +482,32 @@ if COORDINATES == "1":
             \centering \small Direction data. SSIM: \texttt{0.48154}
     \end{columns}
 \end{frame}
+
 % FEDE
-\begin{frame}{Results}
-% mostrare i risultati finali per entrambi + un commento sulla differenza tra training locale con 100 immagini e training su colab con 1000
+\begin{frame}{Alternative Datasets and Loss Function Experiments}
+  \begin{table}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{|l|l|p{5.4cm}|c|c|}
+  \hline
+  \textbf{Dataset} & \textbf{Loss} & \textbf{Observation} & \textbf{Test Loss} & \textbf{SSIM} \\
+  \hline
+  Local direction & L1 + SSIM & Poor reconstruction performance & 0.4912 & 0.3896 \\
+  Local direction & MSE & Slight improvement, but low SSIM & 0.0480 & 0.3563 \\
+  \textbf{Colab vectors} & L1 + SSIM & Best overall performance & \textbf{0.1052} & \textbf{0.8445} \\
+  Local vectors & MSE + SSIM & Balanced compromise & 0.1546 & 0.7539 \\
+  Local vectors & MSE & Suboptimal results & 0.3949 & 0.5229 \\
+  \hline
+  \end{tabular}
+  }
+  \end{table}
+
+  \vspace{0.2cm}
+  \begin{itemize}
+  \justifying
+      \item[-] \textbf{Insight:} Directional data underperformed vs. vector-based representations.
+      \item[-] Combined losses (e.g., L1 + SSIM) improved perceptual quality.
+  \end{itemize}
 \end{frame}
 
 % MARZIA
@@ -480,9 +516,13 @@ if COORDINATES == "1":
 \begin{frame}{Final Considerations}
 \justifying
     \textbf{Societal Impact}
-    \\More accurate high-resolution forecasts support agriculture management, disaster preparedness, and climate resilience, benefiting communities and policymakers. \\\vspace{1cm}
+    \\More accurate high-resolution forecasts support \textit{agricultural management}, \textit{climate disaster preparedness} and \textit{the coastal/tourist community}.\\\vspace{0.5cm}
     \textbf{Next steps}
-    \\Further investigate specific regions for each season.
+    \begin{itemize}
+    \justifying
+        \item[-] Check whether the \textit{L1 + SSIM} loss still favors accurate reconstruction in complex areas with clear structures, compared to flatter regions where features are harder to predict.
+        \item[-] If not, consider analyzing the alpha weight in the loss function to see if the balance between L1 and SSIM is skewed, causing the network to rely too heavily on one component.
+    \end{itemize}
 \end{frame}
 % come ci aspettavamo la rappresentazione con vettori e' quella migliore e quella con intensita' e direzione fa schifo al cazzo
 
