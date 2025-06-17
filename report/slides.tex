@@ -121,7 +121,7 @@ Upscaling low-resolution fields to high-resolution targets using deep learning. 
 
 %%%%% U-Net Theory
 \begin{frame}{U-Net}
-    \textbf{U-Net Architecture}\\Encoder–decoder with skip connections for image-to-image tasks.
+    \textbf{U-Net Architecture}\\Encoder-decoder with skip connections for image-to-image tasks.
       \begin{itemize}
         \item[-] Residual blocks to ease training.
         \item[-] Multiscale features preserved via concatenation.
@@ -334,28 +334,21 @@ if COORDINATES == "1":
 % [x] upconv vs bilinear upsampling
 % [x] loss
 % [x] iperparametri (tabella)
-\begin{frame}{Model and hyperparameters - Introduction}
-\justifying
-\footnotesize
-    Our model is based on the U-Net architecture, extended with residual connections for better gradient flow and stability.
-    The input has 2 channels $(u,v)$ and the output also has the same 2 channels representing the high-resolution version of the same fields.
 
-    The key building blocks are:
-    \begin{itemize}
-    \justifying
-        \item[-] \textbf{Residual Block}: it's the core module of the architecture. It has two paths:\begin{itemize}
-            \item[-] One that applies convolutions and normalization.
-            \item[-] One that does nothing (the residual application).
-        \end{itemize}
-        The model learns how much to use either path.
-        \item[-] \textbf{Downsampling Block}: reduces the spatial resolution and increases the feature size. It uses stride 2 to downsample and includes a residual block.
-        \item[-] \textbf{Upsampling Block}: these are the mirror of down blocks. They use bilinear upsampling to increase the spatial dimension instead of transposed convolutions. Then, we concatenate  the skip connections from the encoder and use a $1\times 1$ convolution to reduce the number of channels after concatenations.
-    \end{itemize}
-    \end{frame}
-
-    \begin{frame}{Model and hyperparameters}
-    \centering
-    \includegraphics[width=0.45\textwidth]{images/unet_experiment_graph.png}
+\begin{frame}
+    \begin{columns}
+        \begin{column}{0.55\textwidth}
+            \includegraphics[width=0.9\textwidth]{images/unet_experiment_graph.png}
+        \end{column}
+        \begin{column}{0.55\textwidth}
+            Interesting points in our implementation:
+            \begin{itemize}
+                \item[-] \texttt{Conv2d} with \texttt{stride=2} for downsampling.
+                \item[-] \texttt{BatchNorm} to reduce internal covariate shift. This improves speed and stability of the training.
+            \end{itemize}
+            But there's more...
+        \end{column}
+    \end{columns}
 \end{frame}
 
 \begin{frame}{Model and hyperparameters - Transposed vs Bilinear}
@@ -367,8 +360,8 @@ if COORDINATES == "1":
         \hline
         \textbf{Network Type} & \textbf{Parameters Count} & \textbf{Training Time} & \textbf{Test Loss} & \textbf{Test SSIM} \\
         \hline
-        Transposed Conv & 13,041,922 (13.0 M) & 54:03 16.22s/it & 0.197755 & 0.709096 \\
-        Bilinear Interp & 3,607,586 (3.6 M) & 08:04 2.42s/it & 0.171656 & 0.749828 \\
+        Transposed Conv & 13,041,922 (13.0 M) & 54:03 16.22s/it & 0.19775 & 0.70910 \\
+        Bilinear Interp & 3,607,586 (3.6 M) & 08:04 2.42s/it & 0.17166 & 0.74983 \\
         \hline
         \end{tabular}
         \caption{Comparison of bilinear interpolation vs transposed convolution.}
@@ -392,7 +385,7 @@ if COORDINATES == "1":
 
 \begin{frame}[fragile]{Model and hyperparameters - Loss}
     \begin{lstlisting}
-    class L1SSIMLoss(nn.Module):
+class L1SSIMLoss(nn.Module):
     def __init__(self, alpha=0.85, ssim_window_size=11, ssim_data_range=1.0, ssim_channel=1):
         super(L1SSIMLoss, self).__init__()
         self.alpha = alpha
@@ -412,7 +405,7 @@ if COORDINATES == "1":
     \begin{table}[ht]
         \centering
         \normalsize
-        \resizebox{\textwidth}{!}{%
+        \resizebox{\textwidth}{!}{
         \begin{tabular}{|c|c|c|c|c|c|c|c|c|}
         \hline
         \textbf{Channels} & \textbf{Epochs} & \textbf{Loss} & \textbf{Batch Size} & \textbf{LR} & \textbf{LR Scheduler} & \textbf{Weight Decay} & \textbf{Test Loss} & \textbf{Test SSIM} \\
@@ -484,30 +477,23 @@ if COORDINATES == "1":
 \end{frame}
 
 % FEDE
-\begin{frame}{Alternative Datasets and Loss Function Experiments}
-  \begin{table}
-  \centering
-  \resizebox{\textwidth}{!}{
-  \begin{tabular}{|l|l|p{5.4cm}|c|c|}
-  \hline
-  \textbf{Dataset} & \textbf{Loss} & \textbf{Observation} & \textbf{Test Loss} & \textbf{SSIM} \\
-  \hline
-  Local direction & L1 + SSIM & Poor reconstruction performance & 0.4912 & 0.3896 \\
-  Local direction & MSE & Slight improvement, but low SSIM & 0.0480 & 0.3563 \\
-  \textbf{Colab vectors} & L1 + SSIM & Best overall performance & \textbf{0.1052} & \textbf{0.8445} \\
-  Local vectors & MSE + SSIM & Balanced compromise & 0.1546 & 0.7539 \\
-  Local vectors & MSE & Suboptimal results & 0.3949 & 0.5229 \\
-  \hline
-  \end{tabular}
-  }
-  \end{table}
-
-  \vspace{0.2cm}
-  \begin{itemize}
-  \justifying
-      \item[-] \textbf{Insight:} Directional data underperformed vs. vector-based representations.
-      \item[-] Combined losses (e.g., L1 + SSIM) improved perceptual quality.
-  \end{itemize}
+\begin{frame}{Comparison between Vectorial and Directional data}
+    \begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|c|c|}
+    \hline
+    \textbf{Dataset} & \textbf{Test Loss} & \textbf{Test SSIM} \\
+    \hline
+    Local Vectors & \underline{0.16610} & \underline{0.75830} \\
+    Local Direction & 0.49120 & 0.38960 \\
+    Colab Vectors & \textbf{0.10470} & \textbf{0.84535} \\
+    Colab Direction & 0.42873 & 0.48154 \\
+    \hline
+    \end{tabular}
+    \caption{Comparison of test loss and SSIM between vectorial and directional data}
+    \label{tab:test_results}
+    \end{table}
+    Directional data underperformed vs. vector-based representations
 \end{frame}
 
 % MARZIA
