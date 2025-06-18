@@ -121,7 +121,7 @@ Upscaling low-resolution fields to high-resolution targets using deep learning. 
 
 %%%%% U-Net Theory
 \begin{frame}{U-Net}
-    \textbf{U-Net Architecture}\\Encoder-decoder with skip connections for image-to-image tasks.
+    \textbf{U-Net Architecture}\\Encoder–decoder with skip connections for image-to-image tasks.
       \begin{itemize}
         \item[-] Residual blocks to ease training.
         \item[-] Multiscale features preserved via concatenation.
@@ -138,7 +138,7 @@ Upscaling low-resolution fields to high-resolution targets using deep learning. 
 % parlare dei 2 dataset (all'inizio erano 3) + come li abbiamo gestiti (preprocessing + abbiamo ritagliato per salvare risorse + minmax normalizzatione)
 % parlare del datset di train locale piccolo da 100 esempi per esperimenti e quello su colab da 1000 esempi per training effettivo
 
-\begin{frame}{Datasets and Preprocessing}
+\begin{frame}{Datasets}
     For the purpose of this project, the wind field representations are derived from the ERA5 and VHR--REA datasets.
     \vspace{1em}
         \begin{itemize}
@@ -152,55 +152,132 @@ Upscaling low-resolution fields to high-resolution targets using deep learning. 
     ERA5 acts as the low-resolution input; VHR--REA is used as the high-resolution target for training.
 \end{frame}
 
-\begin{frame}{Datasets and Preprocessing}
-\scriptsize
-    \begin{columns}
-        \begin{column}{0.65\textwidth}
-            \begin{itemize}
-            \justifying
-                \item[-] \textbf{ERA5} is the fifth-generation global reanalysis dataset produced by ECMWF under the Copernicus Climate Change Service (C3S). 
-                It replaces the previous ERA-Interim product, offering higher accuracy, finer temporal and spatial resolution (0.25°), and consistent uncertainty estimates.
+\begin{frame}{From Global to Surface Reanalysis}
+\tiny
+\begin{columns}
+    \begin{column}{0.50\textwidth}
+        \textbf{Reanalysis Framework}
+        \vspace{0.3em}
+        \begin{itemize}
+            \item[-] \textbf{ERA5 (Global)}\\
+        Provides boundary conditions and large-scale consistency.\\[0.5em]
+        \item [-] \textbf{CERRA (Regional)}\\
+        Dynamically downscales ERA5 over Europe. Higher spatial resolution.\\[0.5em]
+        \item [-] \textbf{CERRA-Land (Surface)}\\
+        Further refined over land using dedicated land-surface modeling.\\[0.5em]
+        \item[-]  \textbf{Observational Data Assimilation}\\
+        Observations feed all levels to constrain and improve the reanalyses.
+        \end{itemize}
+    \end{column}
 
-                \vspace{0.8em}
-            
-                \item[-] Based on a 4D-Var data assimilation scheme, ERA5 integrates a vast range of observational data, including satellite, radiosonde, buoy, and aircraft measurements. 
-                It covers the atmosphere, land surface, and ocean waves with hourly updates and is widely used for climate studies, energy forecasting, and risk assessment.
-
-                \vspace{0.8em}
-
-                \item[-] In this project, we focus on the surface wind fields, specifically the \texttt{u10} and \texttt{v10} components, which serve as low-resolution inputs for the super-resolution model.
-            \end{itemize}
-        \end{column}
-
-        \begin{column}{0.35\textwidth}
-            \centering
-            \includegraphics[width=\linewidth]{images/overview-detail_67e6d1d5ac470ee33ae510a76a2fe3c1c67a7f1fdd4c040a333969fe0b11f76f.png}
-        \end{column}
-    \end{columns}
-
+    \begin{column}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/wind_speed.png}
+    \end{column}
+\end{columns}
 \end{frame}
 
-\begin{frame}{Datasets and Preprocessing}
-\justifying
-    \begin{wrapfigure}{r}{0.4\textwidth}
+\begin{frame}{Datasets - ERA5}
+\scriptsize
+\begin{columns}
+    \begin{column}{0.65\textwidth}
+        \justifying
+        \textbf{ERA5} is a global reanalysis dataset by ECMWF under the Copernicus Climate Change Service (C3S). 
+        It offers hourly data from 1950 at 0.25° resolution, replacing the older ERA-Interim.
+
+        \vspace{0.5em}
+        Based on 4D-Var data assimilation, ERA5 integrates satellite, radiosonde, buoy, and aircraft observations, covering atmosphere, land, and ocean.
+
+        \vspace{0.5em}
+        In this project, we use surface wind components \texttt{u10} and \texttt{v10} as low-resolution inputs for super-resolution modeling.
+    \end{column}
+
+    \begin{column}{0.35\textwidth}
         \centering
-        \includegraphics[width=0.38\textwidth]{images/data-06-00088-g001-550.jpg}
-        \caption{VHR--REA spatial coverage over Northern Italy}
-    \end{wrapfigure}
-    \scriptsize
-    \textbf{VHR--REA (Very High Resolution ReAnalysis)} is a dataset produced by CMCC by dynamically downscaling ERA5 with the COSMO regional model. The dataset has ~2.2 km resolution, explicitly resolving convection processes important in complex terrain.
+        \includegraphics[width=\linewidth]{images/overview-detail_67e6d1d5ac470ee33ae510a76a2fe3c1c67a7f1fdd4c040a333969fe0b11f76f.png}
+    \end{column}
+\end{columns}
+\end{frame}
 
-    This high-resolution data supports regional applications such as hydrological forecasting, renewable energy planning, and urban climatology.
+\begin{frame}{Datasets - VHR-REA}
+\justifying
+\scriptsize
+\begin{wrapfigure}{r}{0.4\textwidth}
+    \centering
+    \includegraphics[width=0.38\textwidth]{images/data-06-00088-g001-550.jpg}
+    \caption{VHR--REA spatial coverage over Northern Italy}
+\end{wrapfigure}
 
-    \begin{itemize}
-        \item[-] Target resolution for training a super-resolution model.
-        \item[-] Data span: one full year, 4 times daily over Northern Italy.
-    \end{itemize}
+\textbf{VHR--REA (Very High Resolution ReAnalysis)} is produced by CMCC via dynamic downscaling of ERA5 using the COSMO model. It reaches a spatial resolution of ~2.2 km, resolving convection in complex terrain.
+
+\vspace{0.5em}
+This dataset is designed for high-resolution applications such as hydrology, renewable energy, and urban climate.
+
+\vspace{0.5em}
+\begin{itemize}
+    \item[-] Used as high-resolution target for training.
+    \item[-] Temporal coverage: 4 times daily for one full year.
+\end{itemize}
 \end{frame}
 
 
 \begin{frame}[fragile]
-\frametitle{Dataset and Preprocessing}
+\frametitle{ERA5 \& VHR--REA: Regridding Pipeline}
+
+\tiny
+\begin{columns}
+\begin{column}{0.42\textwidth}
+\textbf{ERA5 \textrightarrow{} VHR Reprojection Strategy}
+\begin{itemize}
+    \item[-] ERA5 loaded with Dask chunking
+    \item[-] Target grid built from concatenated VHR quarters
+    \item[-] Bilinear regridding using \texttt{xesmf}
+    \item[-] Reuse of interpolation weights (caching)
+    \item[-] Post-rechunking to control memory usage
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Data Output \& Performance}
+\begin{itemize}
+    \item[-] Lazy NetCDF writing with Dask
+    \item[-] Compute triggered with progress bar
+    \item[-] Output aligned with VHR spatial resolution
+\end{itemize}
+\end{column}
+
+\begin{column}{0.58\textwidth}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\tiny]
+# Step 1: Load ERA5 with chunks
+era5 = xr.open_dataset("era5.nc",
+    chunks={"time": 10, "lat": 300, "lon": 300})
+
+# Step 2: Load and combine VHR target grid
+vhr = xr.concat([
+    xr.open_dataset("vhr_q1.nc"),
+    xr.open_dataset("vhr_q2.nc")
+], dim="time")
+
+# Step 3: Create bilinear regridder
+regridder = xe.Regridder(
+    era5, vhr, method="bilinear",
+    filename="weights.nc")
+
+# Step 4: Apply regridding + rechunk
+output = regridder(era5).chunk({
+    "time": 10, "rlat": 100, "rlon": 100})
+
+# Step 5: Save with progress bar
+with ProgressBar():
+    output.to_netcdf("regridded.nc")
+\end{lstlisting}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Preprocessing}
 \scriptsize
 \begin{columns}
     % Colonna sinistra: testo
@@ -326,29 +403,34 @@ if COORDINATES == "1":
 
 \end{frame}
 
-
-
 % --- MATTEO ---
 % spiegare che modello abbiamo usato (upconv vs bilinear upsampling) + come abbiamo scelto la loss + come abbiamo scelto gli iperparametri
 % [x] panoramica generale sul modello
 % [x] upconv vs bilinear upsampling
 % [x] loss
 % [x] iperparametri (tabella)
+\begin{frame}{Model and hyperparameters - Introduction}
+\justifying
+\footnotesize
+    Our model is based on the U-Net architecture, extended with residual connections for better gradient flow and stability.
+    The input has 2 channels $(u,v)$ and the output also has the same 2 channels representing the high-resolution version of the same fields.
 
-\begin{frame}{Model and hyperparameters - General differences}
-    \begin{columns}
-        \begin{column}{0.45\textwidth}
-            \includegraphics[width=0.6\textheight]{images/unet_experiment_graph.png}
-        \end{column}
-        \begin{column}{0.55\textwidth}
-            Interesting points in our implementation:
-            \begin{itemize}
-                \item[-] \texttt{Conv2d} with \texttt{stride=2} for downsampling.
-                \item[-] \texttt{BatchNorm} to reduce internal covariate shift. This improves speed and stability of the training.
-            \end{itemize}
-            But there's more...
-        \end{column}
-    \end{columns}
+    The key building blocks are:
+    \begin{itemize}
+    \justifying
+        \item[-] \textbf{Residual Block}: it's the core module of the architecture. It has two paths:\begin{itemize}
+            \item[-] One that applies convolutions and normalization.
+            \item[-] One that does nothing (the residual application).
+        \end{itemize}
+        The model learns how much to use either path.
+        \item[-] \textbf{Downsampling Block}: reduces the spatial resolution and increases the feature size. It uses stride 2 to downsample and includes a residual block.
+        \item[-] \textbf{Upsampling Block}: these are the mirror of down blocks. They use bilinear upsampling to increase the spatial dimension instead of transposed convolutions. Then, we concatenate  the skip connections from the encoder and use a $1\times 1$ convolution to reduce the number of channels after concatenations.
+    \end{itemize}
+    \end{frame}
+
+    \begin{frame}{Model and hyperparameters}
+    \centering
+    \includegraphics[width=0.45\textwidth]{images/unet_experiment_graph.png}
 \end{frame}
 
 \begin{frame}{Model and hyperparameters - Transposed vs Bilinear}
@@ -360,8 +442,8 @@ if COORDINATES == "1":
         \hline
         \textbf{Network Type} & \textbf{Parameters Count} & \textbf{Training Time} & \textbf{Test Loss} & \textbf{Test SSIM} \\
         \hline
-        Transposed Conv & 13,041,922 (13.0 M) & 54:03 16.22s/it & 0.19775 & 0.70910 \\
-        Bilinear Interp & 3,607,586 (3.6 M) & 08:04 2.42s/it & 0.17166 & 0.74983 \\
+        Transposed Conv & 13,041,922 (13.0 M) & 54:03 16.22s/it & 0.197755 & 0.709096 \\
+        Bilinear Interp & 3,607,586 (3.6 M) & 08:04 2.42s/it & 0.171656 & 0.749828 \\
         \hline
         \end{tabular}
         \caption{Comparison of bilinear interpolation vs transposed convolution.}
@@ -385,7 +467,7 @@ if COORDINATES == "1":
 
 \begin{frame}[fragile]{Model and hyperparameters - Loss}
     \begin{lstlisting}
-class L1SSIMLoss(nn.Module):
+    class L1SSIMLoss(nn.Module):
     def __init__(self, alpha=0.85, ssim_window_size=11, ssim_data_range=1.0, ssim_channel=1):
         super(L1SSIMLoss, self).__init__()
         self.alpha = alpha
@@ -405,7 +487,7 @@ class L1SSIMLoss(nn.Module):
     \begin{table}[ht]
         \centering
         \normalsize
-        \resizebox{\textwidth}{!}{
+        \resizebox{\textwidth}{!}{%
         \begin{tabular}{|c|c|c|c|c|c|c|c|c|}
         \hline
         \textbf{Channels} & \textbf{Epochs} & \textbf{Loss} & \textbf{Batch Size} & \textbf{LR} & \textbf{LR Scheduler} & \textbf{Weight Decay} & \textbf{Test Loss} & \textbf{Test SSIM} \\
@@ -414,7 +496,7 @@ class L1SSIMLoss(nn.Module):
         {[}16, 32, 64, 128{]} & 200 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & 0.17700 & 0.74170 \\
         {[}16, 32, 64, 128, 256{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & \textbf{0.16768} & \textbf{0.75555} \\
         {[}16, 32, 64, 128, 256{]} & 300 & MSE + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & \underline{0.15464} & \underline{0.75391} \\
-        {[}16, 32, 64, 128, 256{]} & 300 & MSE & 8 & 1.00E-03 & NO & 1.00E-05 & 0.00327 & 0.70218 \\
+        {[}16, 32, 64, 128, 256{]} & 300 & MSE & 8 & 1.00E-03 & NO & 1.00E-05 & 0.39491 & 0.52290 \\
         {[}16, 32, 64, 128, 256, 512{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & NO & 1.00E-05 & 0.19207 & 0.71774 \\
         {[}16, 32, 64, 128, 256, 512{]} & 300 & L1 + SSIM & 8 & 1.00E-03 & YES & 1.00E-05 & 0.19207 & 0.71774 \\
         \hline
@@ -477,23 +559,30 @@ class L1SSIMLoss(nn.Module):
 \end{frame}
 
 % FEDE
-\begin{frame}{Comparison between Vectorial and Directional data}
-    \begin{table}[h!]
-    \centering
-    \begin{tabular}{|l|c|c|}
-    \hline
-    \textbf{Dataset} & \textbf{Test Loss} & \textbf{Test SSIM} \\
-    \hline
-    Local Vectors & \underline{0.16610} & \underline{0.75830} \\
-    Local Direction & 0.49120 & 0.38960 \\
-    Colab Vectors & \textbf{0.10470} & \textbf{0.84535} \\
-    Colab Direction & 0.42873 & 0.48154 \\
-    \hline
-    \end{tabular}
-    \caption{Comparison of test loss and SSIM between vectorial and directional data}
-    \label{tab:test_results}
-    \end{table}
-    Directional data underperformed vs. vector-based representations
+\begin{frame}{Alternative Datasets and Loss Function Experiments}
+  \begin{table}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{|l|l|p{5.4cm}|c|c|}
+  \hline
+  \textbf{Dataset} & \textbf{Loss} & \textbf{Observation} & \textbf{Test Loss} & \textbf{SSIM} \\
+  \hline
+  Local direction & L1 + SSIM & Poor reconstruction performance & 0.4912 & 0.3896 \\
+  Local direction & MSE & Slight improvement, but low SSIM & 0.0480 & 0.3563 \\
+  \textbf{Colab vectors} & L1 + SSIM & Best overall performance & \textbf{0.1052} & \textbf{0.8445} \\
+  Local vectors & MSE + SSIM & Balanced compromise & 0.1546 & 0.7539 \\
+  Local vectors & MSE & Suboptimal results & 0.3949 & 0.5229 \\
+  \hline
+  \end{tabular}
+  }
+  \end{table}
+
+  \vspace{0.2cm}
+  \begin{itemize}
+  \justifying
+      \item[-] \textbf{Insight:} Directional data underperformed vs. vector-based representations.
+      \item[-] Combined losses (e.g., L1 + SSIM) improved perceptual quality.
+  \end{itemize}
 \end{frame}
 
 % MARZIA
@@ -510,9 +599,11 @@ class L1SSIMLoss(nn.Module):
         \item[-] If not, consider analyzing the alpha weight in the loss function to see if the balance between L1 and SSIM is skewed, causing the network to rely too heavily on one component.
     \end{itemize}
 \end{frame}
+% come ci aspettavamo la rappresentazione con vettori e' quella migliore e quella con intensita' e direzione fa schifo al cazzo
 
 \begin{frame}
     \frametitle{References}
     \printbibliography
 \end{frame}
 \end{document}
+
