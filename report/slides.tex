@@ -532,30 +532,23 @@ class L1SSIMLoss(nn.Module):
 \end{frame}
 
 % FEDE
-\begin{frame}{Alternative Datasets and Loss Function Experiments}
-  \begin{table}
-  \centering
-  \resizebox{\textwidth}{!}{
-  \begin{tabular}{|l|l|p{5.4cm}|c|c|}
-  \hline
-  \textbf{Dataset} & \textbf{Loss} & \textbf{Observation} & \textbf{Test Loss} & \textbf{SSIM} \\
-  \hline
-  Local direction & L1 + SSIM & Poor reconstruction performance & 0.4912 & 0.3896 \\
-  Local direction & MSE & Slight improvement, but low SSIM & 0.0480 & 0.3563 \\
-  \textbf{Colab vectors} & L1 + SSIM & Best overall performance & \textbf{0.1052} & \textbf{0.8445} \\
-  Local vectors & MSE + SSIM & Balanced compromise & 0.1546 & 0.7539 \\
-  Local vectors & MSE & Suboptimal results & 0.3949 & 0.5229 \\
-  \hline
-  \end{tabular}
-  }
-  \end{table}
-
-  \vspace{0.2cm}
-  \begin{itemize}
-  \justifying
-      \item[-] \textbf{Insight:} Directional data underperformed vs. vector-based representations.
-      \item[-] Combined losses (e.g., L1 + SSIM) improved perceptual quality.
-  \end{itemize}
+\begin{frame}{Comparison between Vectorial and Directional data}
+    \begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|c|c|}
+    \hline
+    \textbf{Dataset} & \textbf{Test Loss} & \textbf{Test SSIM} \\
+    \hline
+    Local Vectors & \underline{0.16610} & \underline{0.75830} \\
+    Local Direction & 0.49120 & 0.38960 \\
+    Colab Vectors & \textbf{0.10470} & \textbf{0.84535} \\
+    Colab Direction & 0.42873 & 0.48154 \\
+    \hline
+    \end{tabular}
+    \caption{Comparison of test loss and SSIM between vectorial and directional data}
+    \label{tab:test_results}
+    \end{table}
+    Directional data underperformed vs. vector-based representations
 \end{frame}
 
 % MARZIA
